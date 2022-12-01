@@ -109,7 +109,7 @@ public class KafkaWrapper
     }
 
 
-    public async Task Send<T>(PayloadEvent<T> ev, ProducerOptions? options = null)
+    public async Task Send<T>(EventBase<T> ev, ProducerOptions? options = null)
     {
         string topicName = ev.Topic;
         await CreateTopic(topicName, options);

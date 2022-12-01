@@ -1,12 +1,13 @@
 ﻿namespace ExampleEvents;
 
-public abstract class EventBase
+
+public abstract class EventBase<T>
 {
     public abstract string Topic { get; }
-    public object Payload { get; set; }
+    public abstract T Payload { get; set; }
 }
 
-public abstract class PayloadEvent<T>:EventBase
+public abstract class Aggregate<T> : EventBase<T>
 {
-    public abstract T Payload { get; set; }
+    public abstract string EventType { get; }
 }

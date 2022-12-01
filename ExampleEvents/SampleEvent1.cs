@@ -1,6 +1,6 @@
 ﻿namespace ExampleEvents;
 
-public class SampleEvent1 : PayloadEvent<SampleEvent1.Data>
+public class SampleEvent1 : EventBase<SampleEvent1.Data>
 {
     public override string Topic { get; } = "SampleEventName";
     public override Data Payload { get; set; }
