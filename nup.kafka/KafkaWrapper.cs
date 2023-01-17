@@ -109,9 +109,9 @@ public class KafkaWrapper
     }
 
 
-    public async Task Send<T>(EventBase<T> ev, ProducerOptions? options = null)
+    public async Task Send<T>(T ev, ProducerOptions? options = null) where T:class
     {
-        string topicName = ev.Topic;
+        string topicName = typeof(T).FullName;
         await CreateTopic(topicName, options);
 
         try
@@ -123,7 +123,7 @@ public class KafkaWrapper
                 topicName,
                 new Message<string, string>
                 {
-                    Key = KafkaConsts.Payload, Value = JsonConvert.SerializeObject(ev.Payload,settings:_jsonSerializerSettings),
+                    Key = KafkaConsts.Payload, Value = JsonConvert.SerializeObject(ev,settings:_jsonSerializerSettings),
                     Headers = AddHeaders(CreateHeaders(ev))
                 });
 
@@ -139,11 +139,11 @@ public class KafkaWrapper
         // need to call producer.Flush before disposing the producer.
     }
 
-    private Dictionary<string, string> CreateHeaders(EventBase ev)
+    private Dictionary<string, string> CreateHeaders<T>(T ev) where T:class
     {
         return new Dictionary<string, string>
         {
-            { KafkaConsts.EventType, ev.GetType().FullName },
+            { KafkaConsts.EventType, typeof(T).FullName },
             { KafkaConsts.CreatedAt, DateTime.UtcNow.ToString() },
             { KafkaConsts.Producer, _appName },
         };

@@ -9,7 +9,7 @@ public class Tests
     [SetUp]
     public void Setup()
     {
-        _client = new KafkaWrapper(TestConsts.brokers,"TestApp",new ProducerOptions
+        _client = new KafkaWrapper(TestConsts.brokers, "TestApp", new ProducerOptions
         {
             PartitionCount = 3
         });
@@ -20,13 +20,11 @@ public class Tests
     {
         try
         {
+            ThreadPool.QueueUserWorkItem(state => _client.Consume(), "ThreadPool");
             await _client.Send(new SampleEvent1
             {
-                Payload = new SampleEvent1.Data
-                {
-                    Age = 3,
-                    Name = "bobsilol"
-                }
+                Age = 3,
+                Name = "bobsilol"
             });
         }
         catch (Exception e)

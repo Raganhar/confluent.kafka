@@ -1,13 +1,10 @@
 ﻿namespace ExampleEvents;
 
-public class SampleEvent1 : EventBase<SampleEvent1.Data>
+public class SampleEvent1
 {
-    public override string Topic { get; } = "SampleEventName";
-    public override Data Payload { get; set; }
+    // public override string Topic { get; } = "SampleEventName";
+    // public override Data Payload { get; set; }
 
-    public class Data
-    {
-        public string Name { get; set; }
-        public int Age { get; set; }
-    }
+    public string Name { get; set; }
+    public int Age { get; set; }
 }
