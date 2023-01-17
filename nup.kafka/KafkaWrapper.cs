@@ -29,15 +29,11 @@ public class KafkaWrapper
             .Build();
     }
 
-    public void Consume()
-    {
-    }
-
-    public static void Run_Consume(string brokerList, List<string> topics, CancellationToken cancellationToken)
+    public static void Run_Consume(List<string> brokerList, List<string> topics, CancellationToken cancellationToken)
     {
         var config = new ConsumerConfig
         {
-            BootstrapServers = brokerList,
+            BootstrapServers = string.Join(",", brokerList),
             GroupId = "csharp-consumer",
             EnableAutoOffsetStore = false,
             EnableAutoCommit = true,
@@ -119,6 +115,7 @@ public class KafkaWrapper
             // Note: Awaiting the asynchronous produce request below prevents flow of execution
             // from proceeding until the acknowledgement from the broker is received (at the 
             // expense of low throughput).
+            Console.WriteLine($"Sending: {JsonConvert.SerializeObject(ev,Formatting.Indented,settings:_jsonSerializerSettings)}");
             var deliveryReport = await _producer.ProduceAsync(
                 topicName,
                 new Message<string, string>

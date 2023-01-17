@@ -20,12 +20,16 @@ public class Tests
     {
         try
         {
-            ThreadPool.QueueUserWorkItem(state => _client.Consume(), "ThreadPool");
+            ThreadPool.QueueUserWorkItem(state => KafkaWrapper.Run_Consume(TestConsts.brokers,new List<string>()
+                {
+                    typeof(SampleEvent1).FullName
+                },new CancellationToken()), "ThreadPool");
             await _client.Send(new SampleEvent1
             {
                 Age = 3,
                 Name = "bobsilol"
             });
+            await Task.Delay(3000);
         }
         catch (Exception e)
         {
