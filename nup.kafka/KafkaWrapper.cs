@@ -35,11 +35,12 @@ public class KafkaWrapper
         {
             BootstrapServers = string.Join(",", brokerList),
             GroupId = "csharp-consumer",
-            EnableAutoOffsetStore = false,
+            EnableAutoOffsetStore = true,
             EnableAutoCommit = true,
             StatisticsIntervalMs = 5000,
             SessionTimeoutMs = 6000,
             AutoOffsetReset = AutoOffsetReset.Earliest,
+            AutoCommitIntervalMs = 1000,
             EnablePartitionEof = true,
             // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
             // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
