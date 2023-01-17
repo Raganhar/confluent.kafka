@@ -18,7 +18,7 @@ public class Tests
     }
 
     [Test]
-    public async Task Test1()
+    public async Task SimpleCase()
     {
         try
         {

@@ -24,7 +24,7 @@ public class KafkaWrapper
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
         _defaultProducerOptions = defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
         _brokers = string.Join(",", brokerList);
-        var config = new ProducerConfig { BootstrapServers = _brokers, Partitioner = Partitioner.ConsistentRandom };
+        var config = new ProducerConfig { BootstrapServers = _brokers, Partitioner =Partitioner.Random };
         _producer = new ProducerBuilder<string, string>(config)
             .Build();
     }

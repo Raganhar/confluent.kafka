@@ -20,8 +20,11 @@ public class KafkaWrapperConsumer
         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
     };
 
-    public KafkaWrapperConsumer(List<string> brokerList, string appName)
+    private string _consumerIdentifier;
+
+    public KafkaWrapperConsumer(List<string> brokerList, string appName, string consumerIdentifier= "default")
     {
+        _consumerIdentifier = consumerIdentifier;
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
         _brokers = string.Join(",", brokerList);
     }
@@ -37,12 +40,12 @@ public class KafkaWrapperConsumer
         _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
     }
 
-    private static void RunListener<T>(string brokerList, string topics, CancellationToken cancellationToken, Action<T> handler)
+    private void RunListener<T>(string brokerList, string topics, CancellationToken cancellationToken, Action<T> handler)
     {
         var config = new ConsumerConfig
         {
             BootstrapServers = brokerList,
-            GroupId = "csharp-consumer",
+            GroupId = _appName,
             EnableAutoOffsetStore = true,
             EnableAutoCommit = true,
             StatisticsIntervalMs = 5000,
@@ -62,6 +65,9 @@ public class KafkaWrapperConsumer
         // (including non-null data).
         using (var consumer = new ConsumerBuilder<Ignore, string>(config)
                    .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
+                   .SetPartitionsAssignedHandler((_, e) => Console.WriteLine($"{_consumerIdentifier} Partition assigned: {string.Join(",",e.Select(x=>x.Partition.Value))}"))
+                   .SetPartitionsLostHandler((_, e) => Console.WriteLine($"{_consumerIdentifier}Partition lost: {string.Join(",",e.Select(x=>x.Partition.Value))}"))
+                   .SetPartitionsRevokedHandler((_, e) => Console.WriteLine($"{_consumerIdentifier}Partition revoked: {string.Join(",",e.Select(x=>x.Partition.Value))}"))
                    .Build())
         {
             consumer.Subscribe(topics);
@@ -73,7 +79,6 @@ public class KafkaWrapperConsumer
                     try
                     {
                         var consumeResult = consumer.Consume(cancellationToken);
-
                         if (consumeResult.IsPartitionEOF)
                         {
                             Console.WriteLine(
@@ -86,7 +91,7 @@ public class KafkaWrapperConsumer
 
                         var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
                         Console.WriteLine(
-                            $"Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
+                            $"{_consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
                         handler(eventObj);
                         Console.WriteLine(
                             $"Handled message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
