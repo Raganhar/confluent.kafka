@@ -5,6 +5,7 @@ namespace nup.kafka.tests;
 public class Tests
 {
     private KafkaWrapper _client;
+    private KafkaWrapperConsumer _consumer;
 
     [SetUp]
     public void Setup()
@@ -13,6 +14,7 @@ public class Tests
         {
             PartitionCount = 3
         });
+        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp");
     }
 
     [Test]
@@ -20,10 +22,7 @@ public class Tests
     {
         try
         {
-            ThreadPool.QueueUserWorkItem(state => KafkaWrapper.Run_Consume(TestConsts.brokers,new List<string>()
-                {
-                    typeof(SampleEvent1).FullName
-                },new CancellationToken()), "ThreadPool");
+            _consumer.Consume(new CancellationToken(),(SampleEvent1 e)=> Console.WriteLine($"Handler received: {e.Name}") );
             await _client.Send(new SampleEvent1
             {
                 Age = 3,
