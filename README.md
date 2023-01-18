@@ -11,6 +11,5 @@
 - [ ] Deadletter queue with message attribute describing failure reason
 - [ ] Fail successive events on same aggregate if earlier events on same entity ID has previously failed (so we dont process update events, if the create event failed)
 - [ ] Provide way to "requeue" events from deadletter queue
-- [ ] POC for shoveling events from Kafka to SNS/SQS & from SNS/SQS to Kafka
 - [ ] Kafka Transactions
-- [ ] Kafka connect
+- [ ] Kafka connect POC for shoveling events from Kafka to SNS/SQS & from SNS/SQS to Kafka
