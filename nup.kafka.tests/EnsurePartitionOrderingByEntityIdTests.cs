@@ -4,6 +4,7 @@ using ExampleEvents;
 using FluentAssertions;
 using Newtonsoft.Json;
 using NUnit.Framework.Internal;
+using nup.kafka.DatabaseStuff;
 using Serilog;
 
 namespace nup.kafka.tests;
@@ -17,7 +18,7 @@ public class EnsurePartitionOrderingByEntityIdTests : TestFixture
     {
         _client = new KafkaWrapper(TestConsts.brokers, "TestApp", new ProducerOptions
         {
-            PartitionCount = 2
+            PartitionCount = 4
         });
     }
 
@@ -33,8 +34,8 @@ public class EnsurePartitionOrderingByEntityIdTests : TestFixture
 
         try
         {
-            var _consumer1 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", "consumer1");
-            var _consumer2 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", "consumer2");
+            var _consumer1 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp",KafkaMysqlDbContext.ConnectionString, "consumer1");
+            var _consumer2 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp",KafkaMysqlDbContext.ConnectionString, "consumer2");
 
             var processedEvents = new ConcurrentDictionary<string, List<int>>();
 

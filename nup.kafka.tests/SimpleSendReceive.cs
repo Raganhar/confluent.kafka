@@ -1,4 +1,5 @@
 using ExampleEvents;
+using nup.kafka.DatabaseStuff;
 
 namespace nup.kafka.tests;
 
@@ -12,9 +13,9 @@ public class Tests
     {
         _client = new KafkaWrapper(TestConsts.brokers, "TestApp", new ProducerOptions
         {
-            PartitionCount = 3
+            PartitionCount = 4
         });
-        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp");
+        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", KafkaMysqlDbContext.ConnectionString);
     }
 
     [Test]
