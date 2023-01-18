@@ -5,7 +5,7 @@ namespace nup.kafka.DatabaseStuff;
 
 public class KafkaMysqlDbContext:DbContext
 {
-    // public KafkaMysqlDbContext(DbContextOptions<KafkaMysqlDbContext> options) : base(options) { }
+    public KafkaMysqlDbContext(DbContextOptions<KafkaMysqlDbContext> options) : base(options) { }
     public DbSet<KafkaMessage> KafkaEvents { get; set; }
     public static string ConnectionString = $"Server=localhost;Database=KafkaMysql;Uid=root;Pwd=root;";
 
@@ -18,6 +18,8 @@ public class KafkaMysqlDbContext:DbContext
     {
         modelBuilder.Entity<KafkaMessage>()
             .HasIndex(p => p.RecievedCreatedAtUtc);
+        modelBuilder.Entity<KafkaMessage>()
+            .HasIndex(p => p.PartitionKey);
         modelBuilder.Entity<KafkaMessage>()
             .HasIndex(p => p.Topic);
         modelBuilder.Entity<KafkaMessage>()

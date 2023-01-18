@@ -39,6 +39,11 @@ namespace nup.kafka.Migrations
                 columns: new[] { "Partition", "OffSet" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_KafkaEvents_PartitionKey",
+                table: "KafkaEvents",
+                column: "PartitionKey");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_KafkaEvents_RecievedCreatedAtUtc",
                 table: "KafkaEvents",
                 column: "RecievedCreatedAtUtc");

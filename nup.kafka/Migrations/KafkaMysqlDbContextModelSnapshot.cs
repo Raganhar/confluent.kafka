@@ -52,6 +52,8 @@ namespace nup.kafka.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PartitionKey");
+
                     b.HasIndex("RecievedCreatedAtUtc");
 
                     b.HasIndex("Topic");

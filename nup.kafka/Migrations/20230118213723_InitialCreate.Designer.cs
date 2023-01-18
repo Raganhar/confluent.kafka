@@ -9,7 +9,7 @@ using nup.kafka.DatabaseStuff;
 namespace nup.kafka.Migrations
 {
     [DbContext(typeof(KafkaMysqlDbContext))]
-    [Migration("20230118212037_InitialCreate")]
+    [Migration("20230118213723_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -53,6 +53,8 @@ namespace nup.kafka.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PartitionKey");
 
                     b.HasIndex("RecievedCreatedAtUtc");
 
