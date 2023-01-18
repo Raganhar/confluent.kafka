@@ -9,7 +9,7 @@ namespace nup.kafka;
 
 public class KafkaWrapper
 {
-    private IProducer<string, string>? _producer;
+    private IProducer<Null, string>? _producer;
     private string _brokers;
     private string _appName;
     private readonly ProducerOptions _defaultProducerOptions;
@@ -24,8 +24,8 @@ public class KafkaWrapper
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
         _defaultProducerOptions = defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
         _brokers = string.Join(",", brokerList);
-        var config = new ProducerConfig { BootstrapServers = _brokers, Partitioner =Partitioner.Random };
-        _producer = new ProducerBuilder<string, string>(config)
+        var config = new ProducerConfig { BootstrapServers = _brokers};
+        _producer = new ProducerBuilder<Null, string>(config)
             .Build();
     }
 
@@ -42,9 +42,9 @@ public class KafkaWrapper
             Console.WriteLine($"Sending: {JsonConvert.SerializeObject(ev,Formatting.Indented,settings:_jsonSerializerSettings)}");
             var deliveryReport = await _producer.ProduceAsync(
                 topicName,
-                new Message<string, string>
+                new Message<Null, string>
                 {
-                    Key = KafkaConsts.Payload, Value = JsonConvert.SerializeObject(ev,settings:_jsonSerializerSettings),
+                    Value = JsonConvert.SerializeObject(ev,settings:_jsonSerializerSettings),
                     Headers = AddHeaders(CreateHeaders(ev))
                 });
 

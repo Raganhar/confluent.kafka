@@ -1,0 +1,1 @@
+dotnet run --project ConsoleApp1/ConsoleApp1.csproj
