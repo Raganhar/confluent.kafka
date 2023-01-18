@@ -9,12 +9,13 @@ public class KafkaMessage
     [Key]
     public Guid Id { get; set; }
     [StringLength(255)]
-    public string PartitionKey { get; set; }
+    public string? PartitionKey { get; set; }
     public int Partition { get; set; }
     public long OffSet { get; set; }
     public bool ProcessedSuccefully { get; set; }
     [StringLength(2000)]
-    public string ReasonText { get; set; }
-    public DateTime RecievedCreatedAt { get; set; }
-    public DateTime? FinishedProcessingAt { get; set; }
+    public string? ReasonText { get; set; }
+    public string Topic { get; set; }
+    public DateTime RecievedCreatedAtUtc { get; set; }
+    public DateTime? FinishedProcessingAtUtc { get; set; }
 }

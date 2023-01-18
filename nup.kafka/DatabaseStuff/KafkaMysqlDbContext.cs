@@ -16,5 +16,11 @@ public class KafkaMysqlDbContext:DbContext
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<KafkaMessage>()
+            .HasIndex(p => p.RecievedCreatedAtUtc);
+        modelBuilder.Entity<KafkaMessage>()
+            .HasIndex(p => p.Topic);
+        modelBuilder.Entity<KafkaMessage>()
+            .HasIndex(p => new { p.Partition, p.OffSet });
     }
 }

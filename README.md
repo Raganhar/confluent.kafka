@@ -13,3 +13,5 @@
 - [ ] Provide way to "requeue" events from deadletter queue
 - [ ] Kafka Transactions
 - [ ] Kafka connect POC for shoveling events from Kafka to SNS/SQS & from SNS/SQS to Kafka
+
+dotnet ef migrations add InitialCreate

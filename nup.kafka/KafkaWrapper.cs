@@ -47,7 +47,7 @@ public class KafkaWrapper
                 {
                     Key = entityKey,
                     Value = JsonConvert.SerializeObject(ev,settings:_jsonSerializerSettings),
-                    Headers = AddHeaders(CreateHeaders(ev))
+                    Headers = AddHeaders(CreateHeaders(ev, entityKey))
                 });
 
             Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",deliveryReport.TopicPartitionOffset,entityKey);
@@ -58,17 +58,19 @@ public class KafkaWrapper
         }
 
         // Since we are producing synchronously, at this point there will be no messages
+        // Since we are producing synchronously, at this point there will be no messages
         // in-flight and no delivery reports waiting to be acknowledged, so there is no
         // need to call producer.Flush before disposing the producer.
     }
 
-    private Dictionary<string, string> CreateHeaders<T>(T ev) where T:class
+    private Dictionary<string, string> CreateHeaders<T>(T ev, string entityKey) where T:class
     {
         return new Dictionary<string, string>
         {
             { KafkaConsts.EventType, typeof(T).FullName },
             { KafkaConsts.CreatedAt, DateTime.UtcNow.ToString() },
             { KafkaConsts.Producer, _appName },
+            { KafkaConsts.Producer, entityKey },
         };
     }
 

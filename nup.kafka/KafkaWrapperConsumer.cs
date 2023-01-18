@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using nup.kafka.DatabaseStuff;
 using Serilog;
+using Serilog.Context;
 
 namespace nup.kafka;
 
@@ -24,7 +25,7 @@ public class KafkaWrapperConsumer
     };
 
     private string _consumerIdentifier;
-    private static KafkaMysqlDbContext _db;
+    private static DaoLayer _persistence;
 
     public KafkaWrapperConsumer(List<string> brokerList, string appName, string connectionString,
         string consumerIdentifier = "default")
@@ -37,11 +38,12 @@ public class KafkaWrapperConsumer
 
     private static void InitializeDatabase(string connectionString)
     {
-        DbContextOptionsBuilder<KafkaMysqlDbContext> optionsBuilder =
-            new DbContextOptionsBuilder<KafkaMysqlDbContext>().UseMySql(connectionString,
-                ServerVersion.AutoDetect(connectionString), mysqlOptions => mysqlOptions.UseNetTopologySuite());
-        _db = new KafkaMysqlDbContext();//yolo singleton DB context
-        _db.Database.Migrate();
+        // DbContextOptionsBuilder<KafkaMysqlDbContext> optionsBuilder =
+        //     new DbContextOptionsBuilder<KafkaMysqlDbContext>().UseMySql(connectionString,
+        //         ServerVersion.AutoDetect(connectionString), mysqlOptions => mysqlOptions.UseNetTopologySuite());
+        var db = new KafkaMysqlDbContext(); //yolo singleton DB context
+        db.Database.Migrate();
+        _persistence = new DaoLayer(db);
     }
 
     public void Consume<T>(CancellationToken cancellationToken, Action<T> handler)
@@ -128,33 +130,59 @@ public class KafkaWrapperConsumer
                     try
                     {
                         var consumeResult = consumer.Consume(cancellationToken);
-                        if (consumeResult.IsPartitionEOF)
+                        
+                        using (LogContext.PushProperty("TopicPartitionOffset", consumeResult.TopicPartitionOffset))
                         {
-                            Log.Information(
-                                $"Reached end of topic {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}.");
+                            var recievedAtUtc = DateTime.UtcNow;
+                            if (consumeResult.IsPartitionEOF)
+                            {
+                                Log.Information(
+                                    $"Reached end of topic {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}.");
 
-                            continue;
-                        }
+                                continue;
+                            }
+                            var headers = GetHeaders(consumeResult);
+                            var kafkaMessage = new KafkaMessage
+                            {
+                                Partition = consumeResult.Partition.Value,
+                                OffSet = consumeResult.Offset.Value,
+                                FinishedProcessingAtUtc = DateTime.UtcNow,
+                                RecievedCreatedAtUtc = recievedAtUtc,
+                                PartitionKey = headers.ContainsKey(KafkaConsts.PartitionKey)?headers[KafkaConsts.PartitionKey]:null,
+                                ProcessedSuccefully = true,
+                            };
+                            try
+                            {
 
-                        var headers = GetHeaders(consumeResult);
+                                var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
+                                Log.Information(
+                                    $"{_consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
+                                handler(eventObj);
+                                Log.Information(
+                                    $"Handled message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
+                            }
+                            catch (Exception e)
+                            {
+                                Log.Error("Failed to process event at {TopicPartitionOffset}");
+                                kafkaMessage.ProcessedSuccefully = false;
+                                kafkaMessage.ReasonText = e.Message;
+                                _persistence.AddEvent(kafkaMessage);
+                                throw;
+                            }
 
-                        var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
-                        Log.Information(
-                            $"{_consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
-                        handler(eventObj);
-                        Log.Information(
-                            $"Handled message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
-                        try
-                        {
-                            // Store the offset associated with consumeResult to a local cache. Stored offsets are committed to Kafka by a background thread every AutoCommitIntervalMs. 
-                            // The offset stored is actually the offset of the consumeResult + 1 since by convention, committed offsets specify the next message to consume. 
-                            // If EnableAutoOffsetStore had been set to the default value true, the .NET client would automatically store offsets immediately prior to delivering messages to the application. 
-                            // Explicitly storing offsets after processing gives at-least once semantics, the default behavior does not.
-                            consumer.StoreOffset(consumeResult);
-                        }
-                        catch (KafkaException e)
-                        {
-                            Log.Information($"Store Offset error: {e.Error.Reason}");
+                            try
+                            {
+                                // Store the offset associated with consumeResult to a local cache. Stored offsets are committed to Kafka by a background thread every AutoCommitIntervalMs. 
+                                // The offset stored is actually the offset of the consumeResult + 1 since by convention, committed offsets specify the next message to consume. 
+                                // If EnableAutoOffsetStore had been set to the default value true, the .NET client would automatically store offsets immediately prior to delivering messages to the application. 
+                                // Explicitly storing offsets after processing gives at-least once semantics, the default behavior does not.
+                                consumer.StoreOffset(consumeResult);
+                                _persistence.AddEvent(kafkaMessage);
+                            }
+                            catch (KafkaException e)
+                            {
+                                Log.Information($"Store Offset error: {e.Error.Reason}");
+                            }
                         }
                     }
                     catch (ConsumeException e)
