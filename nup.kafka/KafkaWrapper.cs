@@ -9,7 +9,7 @@ namespace nup.kafka;
 
 public class KafkaWrapper
 {
-    private IProducer<Null, string>? _producer;
+    private IProducer<string, string>? _producer;
     private string _brokers;
     private string _appName;
     private readonly ProducerOptions _defaultProducerOptions;
@@ -25,11 +25,11 @@ public class KafkaWrapper
         _defaultProducerOptions = defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
         _brokers = string.Join(",", brokerList);
         var config = new ProducerConfig { BootstrapServers = _brokers};
-        _producer = new ProducerBuilder<Null, string>(config)
+        _producer = new ProducerBuilder<string, string>(config)
             .Build();
     }
 
-    public async Task Send<T>(T ev, ProducerOptions? options = null) where T:class
+    public async Task Send<T>(T ev, string entityKey = null, ProducerOptions? options = null) where T:class
     {
         string topicName = typeof(T).FullName;
         await CreateTopic(topicName, options);
@@ -42,13 +42,14 @@ public class KafkaWrapper
             Console.WriteLine($"Sending: {JsonConvert.SerializeObject(ev,Formatting.Indented,settings:_jsonSerializerSettings)}");
             var deliveryReport = await _producer.ProduceAsync(
                 topicName,
-                new Message<Null, string>
+                new Message<string, string>
                 {
+                    Key = entityKey,
                     Value = JsonConvert.SerializeObject(ev,settings:_jsonSerializerSettings),
                     Headers = AddHeaders(CreateHeaders(ev))
                 });
 
-            Console.WriteLine($"delivered to: {deliveryReport.TopicPartitionOffset}");
+            Console.WriteLine($"delivered to: {deliveryReport.TopicPartitionOffset} with entityKey: {entityKey}");
         }
         catch (ProduceException<string, string> e)
         {
