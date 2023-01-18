@@ -39,12 +39,15 @@ public class PersistenceTests
     [TearDown]
     public void TearDown()
     {
+        
         _database.StopAsync().Wait();
+        _database.CleanUpAsync().Wait();
     }
 
     [Test]
     public void SaveEvent()
     {
+        _db.KafkaEvents.Any().Should().BeFalse();
         var kafkaMessage = new KafkaMessage
         {
             Partition = 3,
@@ -64,6 +67,7 @@ public class PersistenceTests
     [Test]
     public void ReturnTrueIfAlreadyProcessed()
     {
+        _db.KafkaEvents.Any().Should().BeFalse();
         var kafkaMessage = new KafkaMessage
         {
             Partition = 3,
@@ -87,6 +91,7 @@ public class PersistenceTests
     [Test]
     public void ReturnTrueIfPreviousEntityMessageFailedToProcess()
     {
+        _db.KafkaEvents.Any().Should().BeFalse();
         var kafkaMessage = new KafkaMessage
         {
             Partition = 3,
@@ -110,6 +115,7 @@ public class PersistenceTests
     [Test]
     public void ReturnTrueIfPreviousEntityMessageFailedToProcess_later_successfully_processed()
     {
+        _db.KafkaEvents.Any().Should().BeFalse();
         var kafkaMessage = new KafkaMessage
         {
             Partition = 3,
@@ -150,6 +156,7 @@ public class PersistenceTests
     public void
         HandleIfOffsetHasBeenResetAndAllMessagesAreBeingReprocessed_PrevoiuslyFailedMessageAreNowProcessedCorrectly()
     {
+        _db.KafkaEvents.Any().Should().BeFalse();
         
         var kafkaMessage = new KafkaMessage
         {
