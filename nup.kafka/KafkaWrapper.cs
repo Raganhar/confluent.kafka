@@ -4,6 +4,7 @@ using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using ExampleEvents;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace nup.kafka;
 
@@ -39,7 +40,7 @@ public class KafkaWrapper
             // Note: Awaiting the asynchronous produce request below prevents flow of execution
             // from proceeding until the acknowledgement from the broker is received (at the 
             // expense of low throughput).
-            Console.WriteLine($"Sending: {JsonConvert.SerializeObject(ev,Formatting.Indented,settings:_jsonSerializerSettings)}");
+            Log.Information("Sending: {entityKey}",entityKey,JsonConvert.SerializeObject(ev,Formatting.Indented,settings:_jsonSerializerSettings));
             var deliveryReport = await _producer.ProduceAsync(
                 topicName,
                 new Message<string, string>
@@ -49,11 +50,11 @@ public class KafkaWrapper
                     Headers = AddHeaders(CreateHeaders(ev))
                 });
 
-            Console.WriteLine($"delivered to: {deliveryReport.TopicPartitionOffset} with entityKey: {entityKey}");
+            Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",deliveryReport.TopicPartitionOffset,entityKey);
         }
         catch (ProduceException<string, string> e)
         {
-            Console.WriteLine($"failed to deliver message: {e.Message} [{e.Error.Code}]");
+            Log.Information($"failed to deliver message: {e.Message} [{e.Error.Code}]");
         }
 
         // Since we are producing synchronously, at this point there will be no messages
@@ -113,7 +114,7 @@ public class KafkaWrapper
             }
             catch (CreateTopicsException e)
             {
-                Console.WriteLine($"An error occured creating topic {e.Results[0].Topic}: {e.Results[0].Error.Reason}");
+                Log.Information($"An error occured creating topic {e.Results[0].Topic}: {e.Results[0].Error.Reason}");
             }
         }
     }

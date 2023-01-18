@@ -6,6 +6,7 @@ using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using ExampleEvents;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace nup.kafka;
 
@@ -64,13 +65,13 @@ public class KafkaWrapperConsumer
         // is UTF8. The default deserializer for Ignore returns null for all input data
         // (including non-null data).
         using (var consumer = new ConsumerBuilder<Ignore, string>(config)
-                   .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
-                .SetStatisticsHandler((_, json) => Console.WriteLine($"Statistics: {json}"))
+                   .SetErrorHandler((_, e) => Log.Information($"Error: {e.Reason}"))
+                .SetStatisticsHandler((_, json) => Log.Information($"Statistics: {json}"))
                 .SetPartitionsAssignedHandler((c, partitions) =>
                 {
                     // Since a cooperative assignor (CooperativeSticky) has been configured, the
                     // partition assignment is incremental (adds partitions to any existing assignment).
-                    Console.WriteLine(
+                    Log.Information(
                         "Partitions incrementally assigned: [" +
                         string.Join(',', partitions.Select(p => p.Partition.Value)) +
                         "], all: [" +
@@ -86,7 +87,7 @@ public class KafkaWrapperConsumer
                     // Since a cooperative assignor (CooperativeSticky) has been configured, the revoked
                     // assignment is incremental (may remove only some partitions of the current assignment).
                     var remaining = c.Assignment.Where(atp => partitions.Where(rtp => rtp.TopicPartition == atp).Count() == 0);
-                    Console.WriteLine(
+                    Log.Information(
                         "Partitions incrementally revoked: [" +
                         string.Join(',', partitions.Select(p => p.Partition.Value)) +
                         "], remaining: [" +
@@ -97,7 +98,7 @@ public class KafkaWrapperConsumer
                 {
                     // The lost partitions handler is called when the consumer detects that it has lost ownership
                     // of its assignment (fallen out of the group).
-                    Console.WriteLine($"Partitions were lost: [{string.Join(", ", partitions)}]");
+                    Log.Information($"Partitions were lost: [{string.Join(", ", partitions)}]");
                 })
                    .Build())
         {
@@ -112,7 +113,7 @@ public class KafkaWrapperConsumer
                         var consumeResult = consumer.Consume(cancellationToken);
                         if (consumeResult.IsPartitionEOF)
                         {
-                            Console.WriteLine(
+                            Log.Information(
                                 $"Reached end of topic {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}.");
 
                             continue;
@@ -121,10 +122,10 @@ public class KafkaWrapperConsumer
                         var headers = GetHeaders(consumeResult);
 
                         var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
-                        Console.WriteLine(
+                        Log.Information(
                             $"{_consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
                         handler(eventObj);
-                        Console.WriteLine(
+                        Log.Information(
                             $"Handled message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
                         try
                         {
@@ -136,18 +137,18 @@ public class KafkaWrapperConsumer
                         }
                         catch (KafkaException e)
                         {
-                            Console.WriteLine($"Store Offset error: {e.Error.Reason}");
+                            Log.Information($"Store Offset error: {e.Error.Reason}");
                         }
                     }
                     catch (ConsumeException e)
                     {
-                        Console.WriteLine($"Consume error: {e.Error.Reason}");
+                        Log.Information($"Consume error: {e.Error.Reason}");
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine("Closing consumer.");
+                Log.Information("Closing consumer.");
                 consumer.Close();
             }
         }
