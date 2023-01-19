@@ -34,8 +34,8 @@ public class EnsurePartitionOrderingByEntityIdTests : TestFixture
 
         try
         {
-            var _consumer1 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", "consumer1").WithDatabase(KafkaMysqlDbContext.ConnectionString);
-            var _consumer2 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp","consumer2").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+            var _consumer1 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp",  new EventProcesser(), "consumer1").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+            var _consumer2 = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp",  new EventProcesser(),"consumer2").WithDatabase(KafkaMysqlDbContext.ConnectionString);
 
             var processedEvents = new ConcurrentDictionary<string, List<int>>();
 

@@ -15,7 +15,8 @@ public class Tests
         {
             PartitionCount = 4
         });
-        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", KafkaMysqlDbContext.ConnectionString);
+        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", new EventProcesser(),
+            KafkaMysqlDbContext.ConnectionString);
     }
 
     [Test]
@@ -23,7 +24,8 @@ public class Tests
     {
         try
         {
-            _consumer.Consume(new CancellationToken(),(SampleEvent1 e)=> Console.WriteLine($"Handler received: {e.Name}") );
+            _consumer.Consume(new CancellationToken(),
+                (SampleEvent1 e) => Console.WriteLine($"Handler received: {e.Name}"));
             await _client.Send(new SampleEvent1
             {
                 Age = 3,

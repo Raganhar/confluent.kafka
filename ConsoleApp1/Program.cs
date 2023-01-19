@@ -6,5 +6,5 @@ using nup.kafka.DatabaseStuff;
 using nup.kafka.tests;
 
 Console.WriteLine("Hello, World!");
-new KafkaWrapperConsumer(TestConsts.brokers,"console-app", KafkaMysqlDbContext.ConnectionString).Consume(CancellationToken.None, (ExampleEvents.SampleEvent1 e)=> Console.WriteLine(JsonConvert.SerializeObject(e)));
+new KafkaWrapperConsumer(TestConsts.brokers,"console-app",  new EventProcesser(), KafkaMysqlDbContext.ConnectionString).Consume(CancellationToken.None, (ExampleEvents.SampleEvent1 e)=> Console.WriteLine(JsonConvert.SerializeObject(e)));
 Console.ReadKey();
