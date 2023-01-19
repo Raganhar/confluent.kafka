@@ -1,6 +1,6 @@
 ﻿namespace nup.kafka;
 
-internal static class KafkaConsts
+public static class KafkaConsts
 {
     public static String Payload = nameof(Payload);
     public static String EventType = nameof(EventType);

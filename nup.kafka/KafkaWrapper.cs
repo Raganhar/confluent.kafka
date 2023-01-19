@@ -74,7 +74,7 @@ public class KafkaWrapper
         };
     }
 
-    private static Headers AddHeaders(Dictionary<string, string> headerName)
+    public static Headers AddHeaders(Dictionary<string, string> headerName)
     {
         var addHeaders = new Headers();
         foreach (var header in headerName.Where(x=>!string.IsNullOrWhiteSpace(x.Value)).Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value))))
