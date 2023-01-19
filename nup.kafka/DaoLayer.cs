@@ -1,14 +1,23 @@
 ﻿using Confluent.Kafka;
+using Microsoft.EntityFrameworkCore;
 using nup.kafka.DatabaseStuff;
 
 namespace nup.kafka;
 
-public class DaoLayer
+public interface IDaoLayer
+{
+    void AddEvent(KafkaMessage kafkaMessage);
+    KafkaMessage Get(TopicPartitionOffset TopicPartitionOffset, string? partitionKey);
+    bool DidPreviousRelatedEntityFail(TopicPartitionOffset TopicPartitionOffset, string? partitionKey);
+}
+
+public class DaoLayer : IDaoLayer
 {
     private readonly KafkaMysqlDbContext _db;
 
     public DaoLayer(KafkaMysqlDbContext db)
     {
+        db.Database.Migrate();
         _db = db;
     }
 

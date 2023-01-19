@@ -149,7 +149,7 @@ public class PersistenceTests
     }
 
     /// <summary>
-    /// Handle reprocessing of the entire stream, it will meet messages that has previously failed that might succede now
+    /// Handle reprocessing of the entire stream, it will meet messages that has previously failed that might succeed now
     /// We need to store in persistence layer the history of first time it failed, second time if succeeded
     /// </summary>
     [Test]

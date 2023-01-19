@@ -25,25 +25,29 @@ public class KafkaWrapperConsumer
     };
 
     private string _consumerIdentifier;
-    private static DaoLayer _persistence;
+    private IDaoLayer _persistence;
 
-    public KafkaWrapperConsumer(List<string> brokerList, string appName, string connectionString,
+    public KafkaWrapperConsumer(List<string> brokerList, string appName,
         string consumerIdentifier = "default")
     {
         _consumerIdentifier = consumerIdentifier;
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
         _brokers = string.Join(",", brokerList);
-        InitializeDatabase(connectionString);
     }
 
-    private static void InitializeDatabase(string connectionString)
+    public KafkaWrapperConsumer WithDatabase(IDaoLayer dao)
+    {
+        _persistence = dao;
+        return this;
+    }
+    public KafkaWrapperConsumer WithDatabase(string connectionString)
     {
         DbContextOptionsBuilder<KafkaMysqlDbContext> optionsBuilder =
             new DbContextOptionsBuilder<KafkaMysqlDbContext>().UseMySql(connectionString,
                 ServerVersion.AutoDetect(connectionString), mysqlOptions => mysqlOptions.UseNetTopologySuite());
         var db = new KafkaMysqlDbContext(optionsBuilder.Options); //yolo singleton DB context
-        db.Database.Migrate();
         _persistence = new DaoLayer(db);
+        return this;
     }
 
     public void Consume<T>(CancellationToken cancellationToken, Action<T> handler)
@@ -130,93 +134,13 @@ public class KafkaWrapperConsumer
                     try
                     {
                         var consumeResult = consumer.Consume(cancellationToken);
-
-                        using (LogContext.PushProperty("TopicPartitionOffset", consumeResult.TopicPartitionOffset))
+                        if (consumeResult.IsPartitionEOF)
                         {
-                            var recievedAtUtc = DateTime.UtcNow;
-                            if (consumeResult.IsPartitionEOF)
-                            {
-                                Log.Information(
-                                    $"Reached end of topic {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}.");
-                                continue;
-                            }
-                            var headers = GetHeaders(consumeResult);
-
-                            var partitionKey = headers.ContainsKey(KafkaConsts.PartitionKey)
-                                ? headers[KafkaConsts.PartitionKey]
-                                : null;
-                            var previouslyProcessedMessage =
-                                _persistence.Get(consumeResult.TopicPartitionOffset, partitionKey);
-                            if (previouslyProcessedMessage?.ProcessedSuccefully == true)
-                            {
-                                Log.Information(
-                                    "Received message on topicPartition: {TopicPartitionOffset} which was already successfully processed",
-                                    consumeResult.TopicPartitionOffset);
-                                consumer.StoreOffset(consumeResult);
-                                Log.Information("Stored offset (ignored the message)");
-                                continue;
-                            }
-                            var kafkaMessage = new KafkaMessage
-                            {
-                                Partition = consumeResult.Partition.Value,
-                                OffSet = consumeResult.Offset.Value,
-                                FinishedProcessingAtUtc = DateTime.UtcNow,
-                                RecievedCreatedAtUtc = recievedAtUtc,
-                                PartitionKey = partitionKey,
-                                ProcessedSuccefully = true,
-                                Topic = consumeResult.Topic
-                            };
-
-                            if (partitionKey !=null)
-                            {
-                                var previousAggregateEntityFailed =
-                                    _persistence.DidPreviousRelatedEntityFail(consumeResult.TopicPartitionOffset, partitionKey);
-                                if (previousAggregateEntityFailed)
-                                {
-                                    Log.Information(
-                                        "Previous entity message failed to be processed, will not process this in order to guarantee order of execution for topicPartition: {TopicPartitionOffset}",
-                                        consumeResult.TopicPartitionOffset);
-                                    consumer.StoreOffset(consumeResult);
-                                    kafkaMessage.ProcessedSuccefully = false;
-                                    kafkaMessage.ReasonText = "Previous entity message failed to be processed";
-                                    _persistence.AddEvent(kafkaMessage);
-
-                                    Log.Information("Stored offset (ignored the message)");
-                                    continue;
-                                }
-                            }
-                            
-                            try
-                            {
-                                var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
-                                Log.Information(
-                                    $"{_consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
-                                handler(eventObj);
-                                Log.Information(
-                                    $"Handled message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
-                            }
-                            catch (Exception e)
-                            {
-                                Log.Error("Failed to process event at {TopicPartitionOffset}");
-                                SaveFailedMessage(kafkaMessage, e);
-                                throw;
-                            }
-
-                            try
-                            {
-                                // Store the offset associated with consumeResult to a local cache. Stored offsets are committed to Kafka by a background thread every AutoCommitIntervalMs. 
-                                // The offset stored is actually the offset of the consumeResult + 1 since by convention, committed offsets specify the next message to consume. 
-                                // If EnableAutoOffsetStore had been set to the default value true, the .NET client would automatically store offsets immediately prior to delivering messages to the application. 
-                                // Explicitly storing offsets after processing gives at-least once semantics, the default behavior does not.
-                                consumer.StoreOffset(consumeResult);
-                                _persistence.AddEvent(kafkaMessage);
-                            }
-                            catch (KafkaException e)
-                            {
-                                Log.Information($"Store Offset error: {e.Error.Reason}");
-                                SaveFailedMessage(kafkaMessage, e);
-                            }
+                            Log.Information(
+                                $"Reached end of topic {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}.");
+                            continue;
                         }
+                        ProcessMessage(handler, consumeResult, ()=> consumer.StoreOffset(consumeResult), _persistence);
                     }
                     catch (ConsumeException e)
                     {
@@ -232,7 +156,92 @@ public class KafkaWrapperConsumer
         }
     }
 
-    private static void SaveFailedMessage(KafkaMessage kafkaMessage, Exception e)
+    private void ProcessMessage<T>(Action<T> handler, ConsumeResult<Ignore, string> consumeResult, Action storeOffset, IDaoLayer daoLayer)
+    {
+        using (LogContext.PushProperty("TopicPartitionOffset", consumeResult.TopicPartitionOffset))
+        {
+            var recievedAtUtc = DateTime.UtcNow;
+            var headers = GetHeaders(consumeResult);
+
+            var partitionKey = headers.ContainsKey(KafkaConsts.PartitionKey)
+                ? headers[KafkaConsts.PartitionKey]
+                : null;
+            var previouslyProcessedMessage =
+                daoLayer.Get(consumeResult.TopicPartitionOffset, partitionKey);
+            if (previouslyProcessedMessage?.ProcessedSuccefully == true)
+            {
+                Log.Information(
+                    "Received message on topicPartition: {TopicPartitionOffset} which was already successfully processed",
+                    consumeResult.TopicPartitionOffset);
+                storeOffset();
+                Log.Information("Stored offset (ignored the message)");
+                return;
+            }
+
+            var kafkaMessage = new KafkaMessage
+            {
+                Partition = consumeResult.Partition.Value,
+                OffSet = consumeResult.Offset.Value,
+                FinishedProcessingAtUtc = DateTime.UtcNow,
+                RecievedCreatedAtUtc = recievedAtUtc,
+                PartitionKey = partitionKey,
+                ProcessedSuccefully = true,
+                Topic = consumeResult.Topic
+            };
+
+            if (partitionKey != null)
+            {
+                var previousAggregateEntityFailed =
+                    daoLayer.DidPreviousRelatedEntityFail(consumeResult.TopicPartitionOffset, partitionKey);
+                if (previousAggregateEntityFailed)
+                {
+                    Log.Information(
+                        "Previous entity message failed to be processed, will not process this in order to guarantee order of execution for topicPartition: {TopicPartitionOffset}",
+                        consumeResult.TopicPartitionOffset);
+                    storeOffset();
+                    kafkaMessage.ProcessedSuccefully = false;
+                    kafkaMessage.ReasonText = "Previous entity message failed to be processed";
+                    daoLayer.AddEvent(kafkaMessage);
+
+                    Log.Information("Stored offset (ignored the message)");
+                    return;
+                }
+            }
+
+            try
+            {
+                var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
+                Log.Information(
+                    $"{_consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
+                handler(eventObj);
+                Log.Information(
+                    $"Handled message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to process event at {TopicPartitionOffset}");
+                SaveFailedMessage(kafkaMessage, e);
+                throw;
+            }
+
+            try
+            {
+                // Store the offset associated with consumeResult to a local cache. Stored offsets are committed to Kafka by a background thread every AutoCommitIntervalMs. 
+                // The offset stored is actually the offset of the consumeResult + 1 since by convention, committed offsets specify the next message to consume. 
+                // If EnableAutoOffsetStore had been set to the default value true, the .NET client would automatically store offsets immediately prior to delivering messages to the application. 
+                // Explicitly storing offsets after processing gives at-least once semantics, the default behavior does not.
+                storeOffset();
+                daoLayer.AddEvent(kafkaMessage);
+            }
+            catch (KafkaException e)
+            {
+                Log.Information($"Store Offset error: {e.Error.Reason}");
+                SaveFailedMessage(kafkaMessage, e);
+            }
+        }
+    }
+
+    private void SaveFailedMessage(KafkaMessage kafkaMessage, Exception e)
     {
         kafkaMessage.ProcessedSuccefully = false;
         kafkaMessage.ReasonText = e.Message;
