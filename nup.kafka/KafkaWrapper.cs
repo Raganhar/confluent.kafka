@@ -70,14 +70,14 @@ public class KafkaWrapper
             { KafkaConsts.EventType, typeof(T).FullName },
             { KafkaConsts.CreatedAt, DateTime.UtcNow.ToString() },
             { KafkaConsts.Producer, _appName },
-            { KafkaConsts.Producer, entityKey },
+            { KafkaConsts.PartitionKey, entityKey },
         };
     }
 
     private static Headers AddHeaders(Dictionary<string, string> headerName)
     {
         var addHeaders = new Headers();
-        foreach (var header in headerName.Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value))))
+        foreach (var header in headerName.Where(x=>!string.IsNullOrWhiteSpace(x.Value)).Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value))))
         {
             addHeaders.Add(header);
         }

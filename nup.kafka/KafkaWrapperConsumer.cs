@@ -65,7 +65,7 @@ public class KafkaWrapperConsumer
         {
             BootstrapServers = brokerList,
             GroupId = _appName,
-            EnableAutoOffsetStore = true,
+            EnableAutoOffsetStore = false,//if true, it will commit offset BEFORE data is returned in consume()
             EnableAutoCommit = true,
             StatisticsIntervalMs = 5000,
             SessionTimeoutMs = 6000,
@@ -164,6 +164,7 @@ public class KafkaWrapperConsumer
                                 RecievedCreatedAtUtc = recievedAtUtc,
                                 PartitionKey = partitionKey,
                                 ProcessedSuccefully = true,
+                                Topic = consumeResult.Topic
                             };
 
                             if (partitionKey !=null)
@@ -197,9 +198,7 @@ public class KafkaWrapperConsumer
                             catch (Exception e)
                             {
                                 Log.Error("Failed to process event at {TopicPartitionOffset}");
-                                kafkaMessage.ProcessedSuccefully = false;
-                                kafkaMessage.ReasonText = e.Message;
-                                _persistence.AddEvent(kafkaMessage);
+                                SaveFailedMessage(kafkaMessage, e);
                                 throw;
                             }
 
@@ -215,6 +214,7 @@ public class KafkaWrapperConsumer
                             catch (KafkaException e)
                             {
                                 Log.Information($"Store Offset error: {e.Error.Reason}");
+                                SaveFailedMessage(kafkaMessage, e);
                             }
                         }
                     }
@@ -230,6 +230,13 @@ public class KafkaWrapperConsumer
                 consumer.Close();
             }
         }
+    }
+
+    private static void SaveFailedMessage(KafkaMessage kafkaMessage, Exception e)
+    {
+        kafkaMessage.ProcessedSuccefully = false;
+        kafkaMessage.ReasonText = e.Message;
+        _persistence.AddEvent(kafkaMessage);
     }
 
     private static Dictionary<string, string> GetHeaders(ConsumeResult<Ignore, string> consumeResult)
