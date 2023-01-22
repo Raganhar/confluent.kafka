@@ -3,6 +3,7 @@ using Amazon.SQS;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using nup.kafka;
+using nup.kafka.DatabaseStuff;
 using Serilog;
 using WebApplication1.Config;
 using WebApplication1.SqsStuff;
@@ -38,7 +39,7 @@ builder.Services.AddSingleton<KafkaWrapper>(x =>
 builder.Services.AddSingleton<KafkaWrapperConsumer>(x=>
 {
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
-    return new KafkaWrapperConsumer(conf.BrokerList,appName,new EventProcesser(),"asd");
+    return new KafkaWrapperConsumer(conf.BrokerList,appName,new EventProcesser(),"asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
 });
 
 
@@ -59,5 +60,5 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-
+Log.Information("Started");
 app.Run();
