@@ -27,10 +27,12 @@ public class KafkaWrapperConsumer
     private string _consumerIdentifier;
     private IDaoLayer _persistence;
     private readonly EventProcesser _eventProcesser;
+    private ILogger _logger;
 
     public KafkaWrapperConsumer(List<string> brokerList, string appName, EventProcesser eventProcesser,
         string consumerIdentifier = "default")
     {
+        _logger = Log.ForContext("Executor",this.GetType().Name);
         _consumerIdentifier = consumerIdentifier;
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
         _brokers = string.Join(",", brokerList);
@@ -89,13 +91,13 @@ public class KafkaWrapperConsumer
         // is UTF8. The default deserializer for Ignore returns null for all input data
         // (including non-null data).
         using (var consumer = new ConsumerBuilder<Ignore, string>(config)
-                   .SetErrorHandler((_, e) => Log.Information($"Error: {e.Reason}"))
-                   .SetStatisticsHandler((_, json) => Log.Information($"Statistics: {json}"))
+                   .SetErrorHandler((_, e) => _logger.Information($"Error: {e.Reason}"))
+                   .SetStatisticsHandler((_, json) => _logger.Information($"Statistics: {json}"))
                    .SetPartitionsAssignedHandler((c, partitions) =>
                    {
                        // Since a cooperative assignor (CooperativeSticky) has been configured, the
                        // partition assignment is incremental (adds partitions to any existing assignment).
-                       Log.Information(
+                       _logger.Information(
                            "Partitions incrementally assigned: [" +
                            string.Join(',', partitions.Select(p => p.Partition.Value)) +
                            "], all: [" +
@@ -112,7 +114,7 @@ public class KafkaWrapperConsumer
                        // assignment is incremental (may remove only some partitions of the current assignment).
                        var remaining = c.Assignment.Where(atp =>
                            partitions.Where(rtp => rtp.TopicPartition == atp).Count() == 0);
-                       Log.Information(
+                       _logger.Information(
                            "Partitions incrementally revoked: [" +
                            string.Join(',', partitions.Select(p => p.Partition.Value)) +
                            "], remaining: [" +
@@ -123,7 +125,7 @@ public class KafkaWrapperConsumer
                    {
                        // The lost partitions handler is called when the consumer detects that it has lost ownership
                        // of its assignment (fallen out of the group).
-                       Log.Information($"Partitions were lost: [{string.Join(", ", partitions)}]");
+                       _logger.Information($"Partitions were lost: [{string.Join(", ", partitions)}]");
                    })
                    .Build())
         {
@@ -138,7 +140,7 @@ public class KafkaWrapperConsumer
                         var consumeResult = consumer.Consume(cancellationToken);
                         if (consumeResult.IsPartitionEOF)
                         {
-                            Log.Information(
+                            _logger.Information(
                                 $"Reached end of topic {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}.");
                             continue;
                         }
@@ -147,13 +149,13 @@ public class KafkaWrapperConsumer
                     }
                     catch (ConsumeException e)
                     {
-                        Log.Information($"Consume error: {e.Error.Reason}");
+                        _logger.Information($"Consume error: {e.Error.Reason}");
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                Log.Information("Closing consumer.");
+                _logger.Information("Closing consumer.");
                 consumer.Close();
             }
         }
