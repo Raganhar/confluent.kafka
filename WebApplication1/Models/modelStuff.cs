@@ -1,4 +1,7 @@
-﻿namespace WebApplication1.Models;
+﻿using nup.kafka;
+using nup.kafka.Models;
+
+namespace WebApplication1.Models;
 
 public class User
 {
@@ -17,16 +20,16 @@ public class UserDetail : User
 
 public class AllMessage
 {
-    public AllMessage()
-    {
-        UserDetail = new UserDetail();
-    }
-
     public string MessageId { get; set; }
+    public string Payload { get; set; }
     public string ReceiptHandle { get; set; }
-
-    public UserDetail UserDetail { get; set; }
+    public string Topic { get; set; }
+    public string EntityKey { get; set; }
+    public string Producer { get; set; }
+    public string EventType { get; set; }
+    public OriginatingPlatform OriginatedAt { get; set; }
 }
+
 
 public class DeleteMessage
 {

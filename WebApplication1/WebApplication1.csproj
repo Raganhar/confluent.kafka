@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.2" />
+        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.100.59" />
         <PackageReference Include="AWSSDK.SQS" Version="3.7.100.58" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
         <PackageReference Include="Serilog.Sinks.Seq" Version="5.2.2" />

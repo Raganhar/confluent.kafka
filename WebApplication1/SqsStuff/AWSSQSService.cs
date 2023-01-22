@@ -7,6 +7,7 @@ namespace WebApplication1.SqsStuff;
 public interface IAWSSQSService
 {
     Task<bool> PostMessageAsync(User user);
+    Task<bool> PostMessageAsync(string @event);
     Task<List<AllMessage>> GetAllMessagesAsync();
     Task<bool> DeleteMessageAsync(DeleteMessage deleteMessage);
 }
@@ -39,6 +40,17 @@ public class AWSSQSService : IAWSSQSService
             throw ex;
         }
     }
+    public async Task<bool> PostMessageAsync(string @event)
+    {
+        try
+        {
+            return await _AWSSQSHelper.SendMessageAsync(@event);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
 
     public async Task<List<AllMessage>> GetAllMessagesAsync()
     {
@@ -49,7 +61,7 @@ public class AWSSQSService : IAWSSQSService
             allMessages = messages.Select(c => new AllMessage
             {
                 MessageId = c.MessageId, ReceiptHandle = c.ReceiptHandle,
-                UserDetail = JsonConvert.DeserializeObject<UserDetail>(c.Body)
+                Payload = c.Body
             }).ToList();
             return allMessages;
         }

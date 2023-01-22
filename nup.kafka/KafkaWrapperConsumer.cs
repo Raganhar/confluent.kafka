@@ -54,6 +54,12 @@ public class KafkaWrapperConsumer
         return this;
     }
 
+    public void Consume(CancellationToken cancellationToken, Action<ConsumeResult<Ignore,string>> handler, string topic)
+    {
+        ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "ThreadPool");
+        // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
+
+    }
     public void Consume<T>(CancellationToken cancellationToken, Action<T> handler)
     {
         var topic = typeof(T).FullName;
@@ -63,7 +69,7 @@ public class KafkaWrapperConsumer
         }
 
         ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "ThreadPool");
-        _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
+        // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
     }
 
     private void RunListener<T>(string brokerList, string topics, CancellationToken cancellationToken,

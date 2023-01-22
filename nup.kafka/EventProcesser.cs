@@ -62,7 +62,15 @@ public class EventProcesser
 
             try
             {
-                var eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
+                T? eventObj;
+                if (typeof(T) == typeof(ConsumeResult<Ignore,string>))
+                {
+                    eventObj = (T)Convert.ChangeType(consumeResult, typeof(T)); // no idea if this will work
+                }
+                else
+                {
+                    eventObj = JsonConvert.DeserializeObject<T>(consumeResult.Message.Value);
+                }
                 Log.Information(
                     $"{consumerIdentifier} Received message at {consumeResult.TopicPartitionOffset}: {JsonConvert.SerializeObject(eventObj)}");
                 handler(eventObj);

@@ -9,7 +9,8 @@ namespace WebApplication1.SqsStuff;
 
 public interface IAWSSQSHelper
 {
-    Task<bool> SendMessageAsync(UserDetail userDetail);
+    Task<bool> SendMessageAsync(object userDetail);
+    Task<bool> SendMessageAsync(string @event);
     Task<List<Message>> ReceiveMessageAsync();
     Task<bool> DeleteMessageAsync(string messageReceiptHandle);
 }
@@ -27,12 +28,11 @@ public class AWSSQSHelper : IAWSSQSHelper
         this._settings = settings.Value;
     }
 
-    public async Task<bool> SendMessageAsync(UserDetail userDetail)
+    public async Task<bool> SendMessageAsync(string @event)
     {
         try
         {
-            string message = JsonConvert.SerializeObject(userDetail);
-            var sendRequest = new SendMessageRequest(_settings.AWSSQS.QueueUrl, message);
+            var sendRequest = new SendMessageRequest(_settings.AWSSQS.QueueUrl, @event);
             // Post message or payload to queue  
             var sendResult = await _sqs.SendMessageAsync(sendRequest);
 
@@ -42,6 +42,13 @@ public class AWSSQSHelper : IAWSSQSHelper
         {
             throw ex;
         }
+    }
+    public async Task<bool> SendMessageAsync(object @event)
+    {
+        return await SendMessageAsync(JsonConvert.SerializeObject(@event, settings: new JsonSerializerSettings()
+        {
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        }));
     }
 
     public async Task<List<Message>> ReceiveMessageAsync()

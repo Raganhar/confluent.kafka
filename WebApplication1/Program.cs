@@ -1,5 +1,8 @@
 using Amazon.Runtime;
+using Amazon.SimpleNotificationService;
 using Amazon.SQS;
+using MessageLibrary.Interfaces;
+using MessageLibrary.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using nup.kafka;
@@ -23,6 +26,7 @@ builder.Services.Configure<ServiceConfiguration>(configuration);
 var awsOptions = configuration.GetAWSOptions();
 awsOptions.Credentials = new EnvironmentVariablesAWSCredentials();
 builder.Services.AddDefaultAWSOptions(awsOptions);  
+builder.Services.AddAWSService<IAmazonSimpleNotificationService>();  
 builder.Services.AddAWSService<IAmazonSQS>();  
 builder.Services.AddTransient<IAWSSQSService, AWSSQSService>();  
 builder.Services.AddTransient<IAWSSQSHelper, AWSSQSHelper>();
@@ -43,9 +47,9 @@ builder.Services.AddSingleton<KafkaWrapperConsumer>(x=>
     return kafkaWrapperConsumer;
 });
 
-
 builder.Services.AddHostedService<KafkaEventWorker>();
 builder.Services.AddHostedService<SqsEventWorker>();
+builder.Services.AddHostedService<KafkaEventShoveller>();
 
 var app = builder.Build();
 

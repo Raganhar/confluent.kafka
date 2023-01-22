@@ -4,6 +4,7 @@ using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using ExampleEvents;
 using Newtonsoft.Json;
+using nup.kafka.Models;
 using Serilog;
 
 namespace nup.kafka;
@@ -23,17 +24,24 @@ public class KafkaWrapper
     public KafkaWrapper(List<string> brokerList, string appName, ProducerOptions defaultProducerOptions)
     {
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
-        _defaultProducerOptions = defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
+        _defaultProducerOptions =
+            defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
         _brokers = string.Join(",", brokerList);
-        var config = new ProducerConfig { BootstrapServers = _brokers};
+        var config = new ProducerConfig { BootstrapServers = _brokers };
         _producer = new ProducerBuilder<string, string>(config)
             .Build();
     }
 
-    public async Task Send<T>(T ev, string entityKey = null, ProducerOptions? options = null) where T:class
+    public async Task Send<T>(T ev, string entityKey = null, ProducerOptions? options = null) where T : class
     {
-        string topicName = typeof(T).FullName;
-        await CreateTopic(topicName, options);
+        var topic = typeof(T).FullName;
+        var payload = JsonConvert.SerializeObject(ev, settings: _jsonSerializerSettings);
+        await Send(payload, topic, topic ,entityKey, options);
+    }
+
+    public async Task Send(string payload, string topic, string eventType, string entityKey = null, ProducerOptions? options = null)
+    {
+        await CreateTopic(topic, options);
 
         try
         {
@@ -41,14 +49,14 @@ public class KafkaWrapper
             // from proceeding until the acknowledgement from the broker is received (at the 
             // expense of low throughput).
             Log.Information("Sending: {entityKey}", entityKey,
-                JsonConvert.SerializeObject(ev, Formatting.Indented, settings: _jsonSerializerSettings));
+                payload, Formatting.Indented);
             var deliveryReport = await _producer.ProduceAsync(
-                topicName,
+                topic,
                 new Message<string, string>
                 {
                     Key = entityKey,
-                    Value = JsonConvert.SerializeObject(ev, settings: _jsonSerializerSettings),
-                    Headers = AddHeaders(CreateHeaders(ev, entityKey))
+                    Value = payload,
+                    Headers = AddHeaders(CreateHeaders(eventType, entityKey, topic))
                 });
 
             Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",
@@ -60,7 +68,7 @@ public class KafkaWrapper
         }
         catch (Exception e)
         {
-            Log.Error("Unhandled error when sending message to kafka {@exception}",e);
+            Log.Error("Unhandled error when sending message to kafka {@exception}", e);
         }
 
         // Since we are producing synchronously, at this point there will be no messages
@@ -69,21 +77,24 @@ public class KafkaWrapper
         // need to call producer.Flush before disposing the producer.
     }
 
-    private Dictionary<string, string> CreateHeaders<T>(T ev, string entityKey) where T:class
+    private Dictionary<string, string> CreateHeaders(string eventType, string entityKey, string topic)
     {
         return new Dictionary<string, string>
         {
-            { KafkaConsts.EventType, typeof(T).FullName },
+            { KafkaConsts.Topic, topic},
+            { KafkaConsts.EventType, eventType},
             { KafkaConsts.CreatedAt, DateTime.UtcNow.ToString() },
             { KafkaConsts.Producer, _appName },
             { KafkaConsts.PartitionKey, entityKey },
+            { KafkaConsts.OriginatedAt, OriginatingPlatform.Kafka.ToString() },
         };
     }
 
     public static Headers AddHeaders(Dictionary<string, string> headerName)
     {
         var addHeaders = new Headers();
-        foreach (var header in headerName.Where(x=>!string.IsNullOrWhiteSpace(x.Value)).Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value))))
+        foreach (var header in headerName.Where(x => !string.IsNullOrWhiteSpace(x.Value))
+                     .Select(x => new Header(x.Key, Encoding.UTF8.GetBytes(x.Value))))
         {
             addHeaders.Add(header);
         }
@@ -108,7 +119,8 @@ public class KafkaWrapper
             {
                 var existingConfig = GetTopicConfig(topicName, adminClient);
                 var partitionsCount = existingConfig.Topics.First().Partitions.Count;
-                if (existingConfig?.Topics?.Count==1 && partitionsCount!=1 && partitionsCount< options.PartitionCount)
+                if (existingConfig?.Topics?.Count == 1 && partitionsCount != 1 &&
+                    partitionsCount < options.PartitionCount)
                 {
                     await IncreasePartitionCountTo(adminClient, topicName, options.PartitionCount);
                 }
@@ -129,7 +141,9 @@ public class KafkaWrapper
 
     private static Metadata GetTopicConfig(string topicName, IAdminClient adminClient)
     {
-        return adminClient.GetMetadata(topicName, TimeSpan.FromSeconds(3)); // for some reason this actually creates a topic with 1 partition ???
+        return
+            adminClient.GetMetadata(topicName,
+                TimeSpan.FromSeconds(3)); // for some reason this actually creates a topic with 1 partition ???
     }
 
 

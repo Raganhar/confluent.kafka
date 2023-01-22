@@ -1,4 +1,5 @@
 ﻿using nup.kafka;
+using nup.kafka.Models;
 using Serilog;
 using Serilog.Context;
 using WebApplication1.Models;
@@ -35,9 +36,16 @@ public class SqsEventWorker : IHostedService, IDisposable
                     Log.Information("found {msgCount}", allMessages.Count);
                     allMessages.ForEach(x =>
                     {
-                        Log.Information("sending msg to kafka");
-                        _kafkaClient.Send(x.UserDetail).Wait();
-                        Log.Information("sendt msg to kafka");
+                        if (x.OriginatedAt== OriginatingPlatform.Sqs)
+                        {
+                            Log.Information("sending msg to kafka");
+                            _kafkaClient.Send(x.Payload,x.Topic,x.EventType,x.EntityKey,new ProducerOptions{PartitionCount = 30}).Wait();
+                            Log.Information("sendt msg to kafka");
+                        }
+                        else
+                        {
+                            Log.Information("Message originated on Kafka, wont send it back on kafka");
+                        }
                         sqs.DeleteMessageAsync(new DeleteMessage
                         {
                             ReceiptHandle = x.ReceiptHandle
