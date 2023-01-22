@@ -83,7 +83,7 @@ public class KafkaWrapper
         {
             { KafkaConsts.Topic, topic},
             { KafkaConsts.EventType, eventType},
-            { KafkaConsts.CreatedAt, DateTime.UtcNow.ToString() },
+            { KafkaConsts.CreatedAt, DateTime.UtcNow.ToCorrectStringFormat() },
             { KafkaConsts.Producer, _appName },
             { KafkaConsts.PartitionKey, entityKey },
             { KafkaConsts.OriginatedAt, OriginatingPlatform.Kafka.ToString() },

@@ -9,7 +9,7 @@ namespace WebApplication1.SqsStuff;
 
 public interface IAWSSQSHelper
 {
-    Task<bool> SendMessageAsync(object userDetail);
+    Task<bool> SendMessageAsync(UserDetail userDetail);
     Task<bool> SendMessageAsync(string @event);
     Task<List<Message>> ReceiveMessageAsync();
     Task<bool> DeleteMessageAsync(string messageReceiptHandle);
@@ -43,7 +43,7 @@ public class AWSSQSHelper : IAWSSQSHelper
             throw ex;
         }
     }
-    public async Task<bool> SendMessageAsync(object @event)
+    public async Task<bool> SendMessageAsync(UserDetail @event)
     {
         return await SendMessageAsync(JsonConvert.SerializeObject(@event, settings: new JsonSerializerSettings()
         {
@@ -60,7 +60,8 @@ public class AWSSQSHelper : IAWSSQSHelper
             {
                 QueueUrl = _settings.AWSSQS.QueueUrl,
                 MaxNumberOfMessages = 10,
-                WaitTimeSeconds = 5
+                WaitTimeSeconds = 5,
+                MessageAttributeNames = new List<string>{".*", LegacySqsConsts.Event},
             };
             //CheckIs there any new message available to process  
             var result = await _sqs.ReceiveMessageAsync(request);

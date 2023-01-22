@@ -1,5 +1,7 @@
 ﻿using Amazon.SQS.Model;
 using Newtonsoft.Json;
+using nup.kafka;
+using nup.kafka.Models;
 using WebApplication1.Models;
 
 namespace WebApplication1.SqsStuff;
@@ -58,10 +60,18 @@ public class AWSSQSService : IAWSSQSService
         try
         {
             List<Message> messages = await _AWSSQSHelper.ReceiveMessageAsync();
-            allMessages = messages.Select(c => new AllMessage
+            allMessages = messages.Select(c =>
             {
-                MessageId = c.MessageId, ReceiptHandle = c.ReceiptHandle,
-                Payload = c.Body
+                var eventName_and_Type = c.Attributes.ContainsKey(LegacySqsConsts.Event) ? c.Attributes[LegacySqsConsts.Event] : null;
+                var message = new AllMessage();
+                message.MessageId = c.MessageId;
+                message.ReceiptHandle = c.ReceiptHandle;
+                message.Payload = c.Body;
+                message.Topic = eventName_and_Type;
+                message.EventType = eventName_and_Type;
+                message.OriginatedAt = c.Attributes.ContainsKey(KafkaConsts.OriginatedAt)? Enum.Parse<OriginatingPlatform>(c.Attributes[KafkaConsts.OriginatedAt]) :OriginatingPlatform.Sqs;
+                message.Producer = c.Attributes.ContainsKey(KafkaConsts.Producer)? c.Attributes[KafkaConsts.OriginatedAt] :null;
+                return message;
             }).ToList();
             return allMessages;
         }

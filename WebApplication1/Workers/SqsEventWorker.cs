@@ -36,20 +36,27 @@ public class SqsEventWorker : IHostedService, IDisposable
                     Log.Information("found {msgCount}", allMessages.Count);
                     allMessages.ForEach(x =>
                     {
-                        if (x.OriginatedAt== OriginatingPlatform.Sqs)
+                        try
                         {
-                            Log.Information("sending msg to kafka");
-                            _kafkaClient.Send(x.Payload,x.Topic,x.EventType,x.EntityKey,new ProducerOptions{PartitionCount = 30}).Wait();
-                            Log.Information("sendt msg to kafka");
+                            if (x.OriginatedAt== OriginatingPlatform.Sqs)
+                            {
+                                Log.Information("sending msg to kafka");
+                                _kafkaClient.Send(x.Payload,x.Topic,x.EventType,x.EntityKey,new ProducerOptions{PartitionCount = 30}).Wait();
+                                Log.Information("sendt msg to kafka");
+                            }
+                            else
+                            {
+                                Log.Information("Message originated on Kafka, wont send it back on kafka");
+                            }
+                            sqs.DeleteMessageAsync(new DeleteMessage
+                            {
+                                ReceiptHandle = x.ReceiptHandle
+                            });
                         }
-                        else
+                        catch (Exception e)
                         {
-                            Log.Information("Message originated on Kafka, wont send it back on kafka");
+                            Log.Error(e,"Forwarding sqs message to Kafka failed");
                         }
-                        sqs.DeleteMessageAsync(new DeleteMessage
-                        {
-                            ReceiptHandle = x.ReceiptHandle
-                        });
                     });
                 }
             }, "sqsworker");

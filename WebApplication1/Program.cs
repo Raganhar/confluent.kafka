@@ -1,8 +1,6 @@
 using Amazon.Runtime;
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
-using MessageLibrary.Interfaces;
-using MessageLibrary.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using nup.kafka;

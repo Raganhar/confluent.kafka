@@ -10,4 +10,5 @@ public static class KafkaConsts
     public static String Producer = nameof(Producer);
     public static String PartitionKey = nameof(PartitionKey);
     public static string OriginatedAt  = nameof(OriginatedAt);
+    public static string DatetimeFOrmat = "o";
 }
