@@ -40,21 +40,27 @@ public class KafkaWrapper
             // Note: Awaiting the asynchronous produce request below prevents flow of execution
             // from proceeding until the acknowledgement from the broker is received (at the 
             // expense of low throughput).
-            Log.Information("Sending: {entityKey}",entityKey,JsonConvert.SerializeObject(ev,Formatting.Indented,settings:_jsonSerializerSettings));
+            Log.Information("Sending: {entityKey}", entityKey,
+                JsonConvert.SerializeObject(ev, Formatting.Indented, settings: _jsonSerializerSettings));
             var deliveryReport = await _producer.ProduceAsync(
                 topicName,
                 new Message<string, string>
                 {
                     Key = entityKey,
-                    Value = JsonConvert.SerializeObject(ev,settings:_jsonSerializerSettings),
+                    Value = JsonConvert.SerializeObject(ev, settings: _jsonSerializerSettings),
                     Headers = AddHeaders(CreateHeaders(ev, entityKey))
                 });
 
-            Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",deliveryReport.TopicPartitionOffset,entityKey);
+            Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",
+                deliveryReport.TopicPartitionOffset, entityKey);
         }
         catch (ProduceException<string, string> e)
         {
             Log.Information($"failed to deliver message: {e.Message} [{e.Error.Code}]");
+        }
+        catch (Exception e)
+        {
+            Log.Error("Unhandled error when sending message to kafka {@exception}",e);
         }
 
         // Since we are producing synchronously, at this point there will be no messages

@@ -20,9 +20,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 var configuration = builder.Configuration;
 builder.Services.Configure<ServiceConfiguration>(configuration);
-// var awsOptions = configuration.GetAWSOptions();
-// awsOptions.Credentials = new EnvironmentVariablesAWSCredentials();
-// builder.Services.AddDefaultAWSOptions(awsOptions);  
+var awsOptions = configuration.GetAWSOptions();
+awsOptions.Credentials = new EnvironmentVariablesAWSCredentials();
+builder.Services.AddDefaultAWSOptions(awsOptions);  
 builder.Services.AddAWSService<IAmazonSQS>();  
 builder.Services.AddTransient<IAWSSQSService, AWSSQSService>();  
 builder.Services.AddTransient<IAWSSQSHelper, AWSSQSHelper>();
@@ -39,12 +39,13 @@ builder.Services.AddSingleton<KafkaWrapper>(x =>
 builder.Services.AddSingleton<KafkaWrapperConsumer>(x=>
 {
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
-    return new KafkaWrapperConsumer(conf.BrokerList,appName,new EventProcesser(),"asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+    var kafkaWrapperConsumer = new KafkaWrapperConsumer(conf.BrokerList,appName,new EventProcesser(),"asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+    return kafkaWrapperConsumer;
 });
 
 
-builder.Services.AddHostedService<SqsEventWorker>();
 builder.Services.AddHostedService<KafkaEventWorker>();
+builder.Services.AddHostedService<SqsEventWorker>();
 
 var app = builder.Build();
 

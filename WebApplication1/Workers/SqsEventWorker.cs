@@ -23,20 +23,28 @@ public class SqsEventWorker : IHostedService, IDisposable
     {
         using (LogContext.PushProperty("worker","sqsWorker"))
         {
-            while (!_cts.Token.IsCancellationRequested)
+            ThreadPool.QueueUserWorkItem(state =>
             {
-                Log.Information("Retrieving SQS messages");
-                var allMessagesAsync = _scope.CreateScope().ServiceProvider.GetRequiredService<IAWSSQSService>().GetAllMessagesAsync();
-                Task.WaitAll(allMessagesAsync);
-                var allMessages = allMessagesAsync.Result;
-                Log.Information("found {msgCount}", allMessages.Count);
-                allMessages.ForEach(x =>
+                while (!_cts.Token.IsCancellationRequested)
                 {
-                    Log.Information("sending msg to kafka");
-                    _kafkaClient.Send(x.UserDetail);
-                    Log.Information("sendt msg to kafka");
-                });
-            }
+                    Log.Information("Retrieving SQS messages");
+                    var sqs = _scope.CreateScope().ServiceProvider.GetRequiredService<IAWSSQSService>();
+                    var allMessagesAsync = sqs.GetAllMessagesAsync();
+                    Task.WaitAll(allMessagesAsync);
+                    var allMessages = allMessagesAsync.Result;
+                    Log.Information("found {msgCount}", allMessages.Count);
+                    allMessages.ForEach(x =>
+                    {
+                        Log.Information("sending msg to kafka");
+                        _kafkaClient.Send(x.UserDetail).Wait();
+                        Log.Information("sendt msg to kafka");
+                        sqs.DeleteMessageAsync(new DeleteMessage
+                        {
+                            ReceiptHandle = x.ReceiptHandle
+                        });
+                    });
+                }
+            }, "sqsworker");
         }
 
         return Task.CompletedTask;
