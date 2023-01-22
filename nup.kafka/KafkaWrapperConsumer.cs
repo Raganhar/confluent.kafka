@@ -56,7 +56,7 @@ public class KafkaWrapperConsumer
 
     public void Consume<T>(CancellationToken cancellationToken, Action<T> handler)
     {
-        var topic = typeof(SampleEvent1).FullName;
+        var topic = typeof(T).FullName;
         if (_handlers.ContainsKey(topic))
         {
             throw new ArgumentException($"Handler for topic {topic} is already registered");
