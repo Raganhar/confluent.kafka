@@ -50,9 +50,11 @@ public class AWSSQSController : ControllerBase
             },
             Message = JsonConvert.SerializeObject(user)
         };
-        var publishAsync = await sns.PublishAsync(publishRequest);
-        
-        return StatusCode((int)publishAsync.HttpStatusCode);
+        // var publishAsync = await sns.PublishAsync(publishRequest);
+
+        var postMessageAsync = await _AWSSQSService.PostMessageAsync(user);
+        return Ok(postMessageAsync);
+        // return StatusCode((int)publishAsync.HttpStatusCode);
     }
 
     [Route("getAllMessages")]

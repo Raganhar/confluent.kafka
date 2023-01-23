@@ -151,7 +151,12 @@ public class KafkaWrapperConsumer
                             continue;
                         }
 
-                        _eventProcesser.ProcessMessage(handler, consumeResult, ()=> consumer.StoreOffset(consumeResult), _persistence, _consumerIdentifier);
+                        _eventProcesser.ProcessMessage(handler, consumeResult, ()=>
+                        {
+                            _logger.Information("Saving offset");
+                            consumer.StoreOffset(consumeResult);
+                            _logger.Information("Saved offset");
+                        }, _persistence, _consumerIdentifier);
                     }
                     catch (ConsumeException e)
                     {

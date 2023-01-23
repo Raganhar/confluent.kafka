@@ -33,6 +33,16 @@ public class AWSSQSHelper : IAWSSQSHelper
         try
         {
             var sendRequest = new SendMessageRequest(_settings.AWSSQS.QueueUrl, @event);
+            sendRequest.MessageAttributes = new Dictionary<string, MessageAttributeValue>
+            {
+                {
+                    LegacySqsConsts.Event, new MessageAttributeValue
+                    {
+                        StringValue = "hello",
+                        DataType = LegacySqsConsts.String
+                    }
+                }
+            };
             // Post message or payload to queue  
             var sendResult = await _sqs.SendMessageAsync(sendRequest);
 

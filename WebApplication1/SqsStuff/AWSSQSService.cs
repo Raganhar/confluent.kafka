@@ -62,15 +62,16 @@ public class AWSSQSService : IAWSSQSService
             List<Message> messages = await _AWSSQSHelper.ReceiveMessageAsync();
             allMessages = messages.Select(c =>
             {
-                var eventName_and_Type = c.Attributes.ContainsKey(LegacySqsConsts.Event) ? c.Attributes[LegacySqsConsts.Event] : null;
+                var attributes = c.MessageAttributes;
+                var eventName_and_Type = attributes.ContainsKey(LegacySqsConsts.Event) ? attributes[LegacySqsConsts.Event].StringValue : null;
                 var message = new AllMessage();
                 message.MessageId = c.MessageId;
                 message.ReceiptHandle = c.ReceiptHandle;
                 message.Payload = c.Body;
                 message.Topic = eventName_and_Type;
                 message.EventType = eventName_and_Type;
-                message.OriginatedAt = c.Attributes.ContainsKey(KafkaConsts.OriginatedAt)? Enum.Parse<OriginatingPlatform>(c.Attributes[KafkaConsts.OriginatedAt]) :OriginatingPlatform.Sqs;
-                message.Producer = c.Attributes.ContainsKey(KafkaConsts.Producer)? c.Attributes[KafkaConsts.OriginatedAt] :null;
+                message.OriginatedAt = attributes.ContainsKey(KafkaConsts.OriginatedAt)? Enum.Parse<OriginatingPlatform>(attributes[KafkaConsts.OriginatedAt].StringValue) :OriginatingPlatform.Sqs;
+                message.Producer = attributes.ContainsKey(KafkaConsts.Producer)? attributes[KafkaConsts.OriginatedAt].StringValue :null;
                 return message;
             }).ToList();
             return allMessages;
