@@ -1,6 +1,7 @@
 using Amazon.Runtime;
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
+using KafkaAndSqsShoveller;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using nup.kafka;
@@ -28,6 +29,8 @@ builder.Services.AddAWSService<IAmazonSimpleNotificationService>();
 builder.Services.AddAWSService<IAmazonSQS>();  
 builder.Services.AddTransient<IAWSSQSService, AWSSQSService>();  
 builder.Services.AddTransient<IAWSSQSHelper, AWSSQSHelper>();
+builder.Services.AddSingleton<ShovelToSqs>();
+builder.Services.AddSingleton<ShovelToKafka>();
 var appName = "sqs_kafka_bridge";
 
 builder.Services.AddSingleton<KafkaWrapper>(x =>

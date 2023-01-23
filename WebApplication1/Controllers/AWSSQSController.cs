@@ -1,5 +1,6 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
+using KafkaAndSqsShoveller;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;

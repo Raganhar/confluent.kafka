@@ -1,4 +1,5 @@
 ﻿using Amazon.SQS.Model;
+using KafkaAndSqsShoveller;
 using Newtonsoft.Json;
 using nup.kafka;
 using nup.kafka.Models;
