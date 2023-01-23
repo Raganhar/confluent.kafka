@@ -3,6 +3,7 @@ using Amazon.SimpleNotificationService.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using nup.kafka;
 using WebApplication1.Config;
 using WebApplication1.Models;
 using WebApplication1.SqsStuff;
@@ -54,6 +55,19 @@ public class AWSSQSController : ControllerBase
 
         var postMessageAsync = await _AWSSQSService.PostMessageAsync(user);
         return Ok(postMessageAsync);
+        // return StatusCode((int)publishAsync.HttpStatusCode);
+    }
+
+    
+    [Route("postToKafka")]
+    [HttpPost]
+    public async Task<IActionResult> PostToKafkaAsync([FromServices] KafkaWrapper kafka,
+        [FromBody] User user)
+    {
+        await kafka.Send(user);
+        // var publishAsync = await sns.PublishAsync(publishRequest);
+
+        return Ok(true);
         // return StatusCode((int)publishAsync.HttpStatusCode);
     }
 
