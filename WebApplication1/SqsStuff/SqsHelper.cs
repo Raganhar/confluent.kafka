@@ -9,8 +9,8 @@ namespace WebApplication1.SqsStuff;
 
 public interface IAWSSQSHelper
 {
-    Task<bool> SendMessageAsync(UserDetail userDetail);
-    Task<bool> SendMessageAsync(string @event);
+    Task<bool> SendMessageAsync(UserDetail userDetail, string eventType);
+    Task<bool> SendMessageAsync(string @event, string eventType);
     Task<List<Message>> ReceiveMessageAsync();
     Task<bool> DeleteMessageAsync(string messageReceiptHandle);
 }
@@ -28,7 +28,7 @@ public class AWSSQSHelper : IAWSSQSHelper
         this._settings = settings.Value;
     }
 
-    public async Task<bool> SendMessageAsync(string @event)
+    public async Task<bool> SendMessageAsync(string @event, string eventType)
     {
         try
         {
@@ -38,7 +38,7 @@ public class AWSSQSHelper : IAWSSQSHelper
                 {
                     LegacySqsConsts.Event, new MessageAttributeValue
                     {
-                        StringValue = "hello",
+                        StringValue = eventType,
                         DataType = LegacySqsConsts.String
                     }
                 }
@@ -53,12 +53,12 @@ public class AWSSQSHelper : IAWSSQSHelper
             throw ex;
         }
     }
-    public async Task<bool> SendMessageAsync(UserDetail @event)
+    public async Task<bool> SendMessageAsync(UserDetail @event, string eventType)
     {
         return await SendMessageAsync(JsonConvert.SerializeObject(@event, settings: new JsonSerializerSettings()
         {
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-        }));
+        }),eventType);
     }
 
     public async Task<List<Message>> ReceiveMessageAsync()

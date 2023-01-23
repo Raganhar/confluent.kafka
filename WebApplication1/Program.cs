@@ -45,7 +45,7 @@ builder.Services.AddSingleton<KafkaWrapperConsumer>(x=>
     return kafkaWrapperConsumer;
 });
 
-builder.Services.AddHostedService<KafkaEventWorker>();
+// builder.Services.AddHostedService<KafkaEventWorker>();
 builder.Services.AddHostedService<SqsEventWorker>();
 builder.Services.AddHostedService<KafkaEventShoveller>();
 

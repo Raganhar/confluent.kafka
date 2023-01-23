@@ -59,7 +59,8 @@ public class KafkaEventShoveller : IHostedService, IDisposable
                     {
                         Log.Information("{worker} event started on sqs, no need to send it back", this.GetType().Name);
                     }
-                }, "^(?!_).*");
+                }, "^.*");
+                // }, "^[a-z][a-zA-Z].*");
             }
             catch (Exception e)
             {

@@ -9,7 +9,7 @@ namespace WebApplication1.SqsStuff;
 public interface IAWSSQSService
 {
     Task<bool> PostMessageAsync(User user);
-    Task<bool> PostMessageAsync(string @event);
+    // Task<bool> PostMessageAsync(string @event, string eventType);
     Task<List<AllMessage>> GetAllMessagesAsync();
     Task<bool> DeleteMessageAsync(DeleteMessage deleteMessage);
 }
@@ -35,24 +35,24 @@ public class AWSSQSService : IAWSSQSService
             userDetail.EmailId = user.EmailId;
             userDetail.CreatedOn = DateTime.UtcNow;
             userDetail.UpdatedOn = DateTime.UtcNow;
-            return await _AWSSQSHelper.SendMessageAsync(userDetail);
+            return await _AWSSQSHelper.SendMessageAsync(userDetail, userDetail.GetType().FullName);
         }
         catch (Exception ex)
         {
             throw ex;
         }
     }
-    public async Task<bool> PostMessageAsync(string @event)
-    {
-        try
-        {
-            return await _AWSSQSHelper.SendMessageAsync(@event);
-        }
-        catch (Exception ex)
-        {
-            throw ex;
-        }
-    }
+    // public async Task<bool> PostMessageAsync(string @event, string eventType)
+    // {
+    //     try
+    //     {
+    //         return await _AWSSQSHelper.SendMessageAsync(@event,eventType);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         throw ex;
+    //     }
+    // }
 
     public async Task<List<AllMessage>> GetAllMessagesAsync()
     {

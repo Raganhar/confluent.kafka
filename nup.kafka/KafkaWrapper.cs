@@ -36,10 +36,10 @@ public class KafkaWrapper
     {
         var topic = typeof(T).FullName;
         var payload = JsonConvert.SerializeObject(ev, settings: _jsonSerializerSettings);
-        await Send(payload, topic, topic ,entityKey, options);
+        await Send(payload, topic, topic, OriginatingPlatform.Kafka, entityKey, options);
     }
 
-    public async Task Send(string payload, string topic, string eventType, string entityKey = null, ProducerOptions? options = null)
+    public async Task Send(string payload, string topic, string eventType, OriginatingPlatform platform, string entityKey = null, ProducerOptions? options = null)
     {
         await CreateTopic(topic, options);
 
@@ -56,7 +56,7 @@ public class KafkaWrapper
                 {
                     Key = entityKey,
                     Value = payload,
-                    Headers = AddHeaders(CreateHeaders(eventType, entityKey, topic))
+                    Headers = AddHeaders(CreateHeaders(eventType, entityKey, topic,platform))
                 });
 
             Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",
@@ -77,7 +77,8 @@ public class KafkaWrapper
         // need to call producer.Flush before disposing the producer.
     }
 
-    private Dictionary<string, string> CreateHeaders(string eventType, string entityKey, string topic)
+    private Dictionary<string, string> CreateHeaders(string eventType, string entityKey, string topic,
+        OriginatingPlatform originatingPlatform)
     {
         return new Dictionary<string, string>
         {
@@ -86,7 +87,7 @@ public class KafkaWrapper
             { KafkaConsts.CreatedAt, DateTime.UtcNow.ToCorrectStringFormat() },
             { KafkaConsts.Producer, _appName },
             { KafkaConsts.PartitionKey, entityKey },
-            { KafkaConsts.OriginatedAt, OriginatingPlatform.Kafka.ToString() },
+            { KafkaConsts.OriginatedAt, originatingPlatform.ToString() },
         };
     }
 

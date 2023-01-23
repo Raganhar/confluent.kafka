@@ -56,20 +56,34 @@ public class KafkaWrapperConsumer
 
     public void Consume(CancellationToken cancellationToken, Action<ConsumeResult<Ignore,string>> handler, string topic)
     {
-        ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "ThreadPool");
+        try
+        {
+            ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "Bob");
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e,"failed to register listener");
+        }
         // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
 
     }
     public void Consume<T>(CancellationToken cancellationToken, Action<T> handler)
     {
-        var topic = typeof(T).FullName;
-        if (_handlers.ContainsKey(topic))
+        try
         {
-            throw new ArgumentException($"Handler for topic {topic} is already registered");
-        }
+            var topic = typeof(T).FullName;
+            // if (_handlers.ContainsKey(topic))
+            // {
+            //     throw new ArgumentException($"Handler for topic {topic} is already registered");
+            // }
 
-        ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "ThreadPool");
-        // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
+            ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "ThreadPool");
+            // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e,"failed to register listener");
+        }
     }
 
     private void RunListener<T>(string brokerList, string topics, CancellationToken cancellationToken,
@@ -88,7 +102,8 @@ public class KafkaWrapperConsumer
             EnablePartitionEof = true,
             // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
             // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
-            PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky
+            PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky,
+            TopicBlacklist = "docker-connect.*,_.*"
         };
 
         // Note: If a key or value deserializer is not set (as is the case below), the 
@@ -135,7 +150,16 @@ public class KafkaWrapperConsumer
                    })
                    .Build())
         {
-            consumer.Subscribe(topics);
+            try
+            {
+                consumer.Subscribe(topics);
+                _logger.Information("Registered kafka consumer to {topic}",topics);
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e,"Failed to subscribe to topic.");
+                throw;
+            }
 
             try
             {
