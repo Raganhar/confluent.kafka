@@ -5,11 +5,17 @@ using KafkaAndSqsShoveller;
 using KafkaAndSqsShoveller.SqsStuff;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using nup.kafka;
 using nup.kafka.DatabaseStuff;
 using Serilog;
 using WebApplication1;
 using WebApplication1.Workers;
+
+ServiceConfiguration? LoadKafkaCredentials()
+{
+    return JsonConvert.DeserializeObject<ServiceConfiguration>(File.ReadAllText("Secrets.json"));
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,16 +42,24 @@ var appName = "sqs_kafka_bridge";
 
 builder.Services.AddSingleton<KafkaWrapper>(x =>
 {
+    var kafkaCredentials = LoadKafkaCredentials();
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
     return new KafkaWrapper(conf.BrokerList,appName,new ProducerOptions
     {
-        PartitionCount = 30
-    });
+        PartitionCount = 30,
+        Password = kafkaCredentials.ConfluentPassword,
+        Username = kafkaCredentials.ConfluentUsername });
 });
 builder.Services.AddSingleton<KafkaWrapperConsumer>(x=>
 {
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
-    var kafkaWrapperConsumer = new KafkaWrapperConsumer(conf.BrokerList,appName,new EventProcesser(),"asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+    var kafkaCredentials = LoadKafkaCredentials();
+    var kafkaWrapperConsumer = new KafkaWrapperConsumer(conf.BrokerList,new ConsumerOptions
+    {
+        Password = kafkaCredentials.ConfluentPassword,
+        Username = kafkaCredentials.ConfluentUsername,
+        AppName = "asd"
+    },new EventProcesser(),"asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
     return kafkaWrapperConsumer;
 });
 

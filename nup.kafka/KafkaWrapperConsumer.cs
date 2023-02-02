@@ -29,12 +29,13 @@ public class KafkaWrapperConsumer
     private readonly EventProcesser _eventProcesser;
     private ILogger _logger;
 
-    public KafkaWrapperConsumer(List<string> brokerList, string appName, EventProcesser eventProcesser,
+    public KafkaWrapperConsumer(List<string> brokerList, ConsumerOptions consumerOptions, EventProcesser eventProcesser,
         string consumerIdentifier = "default")
     {
+        if (consumerOptions == null) throw new ArgumentNullException(nameof(consumerOptions));
         _logger = Log.ForContext("Executor",this.GetType().Name);
         _consumerIdentifier = consumerIdentifier;
-        _appName = appName ?? throw new ArgumentNullException(nameof(appName));
+        _appName = consumerOptions.AppName ?? throw new ArgumentNullException(nameof(consumerOptions.AppName));
         _brokers = string.Join(",", brokerList);
         _eventProcesser = eventProcesser;
     }
@@ -103,7 +104,8 @@ public class KafkaWrapperConsumer
             // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
             // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
             PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky,
-            TopicBlacklist = "docker-connect.*,_.*"
+            TopicBlacklist = "docker-connect.*,_.*",
+            
         };
 
         // Note: If a key or value deserializer is not set (as is the case below), the 

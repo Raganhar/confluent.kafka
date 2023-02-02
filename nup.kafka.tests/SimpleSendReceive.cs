@@ -15,7 +15,11 @@ public class Tests
         {
             PartitionCount = 4
         });
-        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, "TestApp", new EventProcesser(),
+        var consumerOptions = new ConsumerOptions
+        {
+            AppName = "TestApp"
+        };
+        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, consumerOptions, new EventProcesser(),
             KafkaMysqlDbContext.ConnectionString);
     }
 

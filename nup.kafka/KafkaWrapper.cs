@@ -27,7 +27,12 @@ public class KafkaWrapper
         _defaultProducerOptions =
             defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
         _brokers = string.Join(",", brokerList);
-        var config = new ProducerConfig { BootstrapServers = _brokers };
+        var config = new ProducerConfig
+        {
+            BootstrapServers = _brokers, SaslUsername = defaultProducerOptions.Username,
+            SaslPassword = defaultProducerOptions.Password, SaslMechanism = SaslMechanism.Plain,
+            SecurityProtocol = SecurityProtocol.SaslSsl,
+        };
         _producer = new ProducerBuilder<string, string>(config)
             .Build();
     }
@@ -39,7 +44,8 @@ public class KafkaWrapper
         await Send(payload, topic, topic, OriginatingPlatform.Kafka, entityKey, options);
     }
 
-    public async Task Send(string payload, string topic, string eventType, OriginatingPlatform platform, string entityKey = null, ProducerOptions? options = null)
+    public async Task Send(string payload, string topic, string eventType, OriginatingPlatform platform,
+        string entityKey = null, ProducerOptions? options = null)
     {
         await CreateTopic(topic, options);
 
@@ -56,7 +62,7 @@ public class KafkaWrapper
                 {
                     Key = entityKey,
                     Value = payload,
-                    Headers = AddHeaders(CreateHeaders(eventType, entityKey, topic,platform))
+                    Headers = AddHeaders(CreateHeaders(eventType, entityKey, topic, platform))
                 });
 
             Log.Information("delivered to: {TopicPartitionOffset} with entityKey: {entityKey}",
@@ -82,8 +88,8 @@ public class KafkaWrapper
     {
         return new Dictionary<string, string>
         {
-            { KafkaConsts.Topic, topic},
-            { KafkaConsts.EventType, eventType},
+            { KafkaConsts.Topic, topic },
+            { KafkaConsts.EventType, eventType },
             { KafkaConsts.CreatedAt, DateTime.UtcNow.ToCorrectStringFormat() },
             { KafkaConsts.Producer, _appName },
             { KafkaConsts.PartitionKey, entityKey },
