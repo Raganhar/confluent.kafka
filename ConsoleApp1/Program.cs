@@ -6,9 +6,10 @@ using nup.kafka.DatabaseStuff;
 using nup.kafka.tests;
 
 Console.WriteLine("Hello, World!");
-var consumerOptions = new ConsumerOptions
+var consumerOptions = new KafkaOptions()
 {
-    AppName = "TestApp"
+    AppName = "TestApp",
+    Brokers = TestConsts.brokers
 };
-new KafkaWrapperConsumer(TestConsts.brokers,consumerOptions,  new EventProcesser(), KafkaMysqlDbContext.ConnectionString).Consume(CancellationToken.None, (ExampleEvents.SampleEvent1 e)=> Console.WriteLine(JsonConvert.SerializeObject(e)));
+new KafkaWrapperConsumer(consumerOptions,  new EventProcesser(), KafkaMysqlDbContext.ConnectionString).Consume(CancellationToken.None, (ExampleEvents.SampleEvent1 e)=> Console.WriteLine(JsonConvert.SerializeObject(e)));
 Console.ReadKey();

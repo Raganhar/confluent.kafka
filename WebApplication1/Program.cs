@@ -30,11 +30,11 @@ var configuration = builder.Configuration;
 builder.Services.Configure<ServiceConfiguration>(configuration);
 var awsOptions = configuration.GetAWSOptions();
 awsOptions.Credentials = new EnvironmentVariablesAWSCredentials();
-builder.Services.AddDefaultAWSOptions(awsOptions);  
-builder.Services.AddAWSService<IAmazonSimpleNotificationService>();  
-builder.Services.AddAWSService<IAmazonSQS>();  
-builder.Services.AddTransient<SqsStuff>();  
-builder.Services.AddTransient<IAWSSQSService, AWSSQSService>();  
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonSimpleNotificationService>();
+builder.Services.AddAWSService<IAmazonSQS>();
+builder.Services.AddTransient<SqsStuff>();
+builder.Services.AddTransient<IAWSSQSService, AWSSQSService>();
 builder.Services.AddTransient<IAWSSQSHelper, AWSSQSHelper>();
 builder.Services.AddSingleton<ShovelToSqs>();
 builder.Services.AddSingleton<ShovelToKafka>();
@@ -44,22 +44,25 @@ builder.Services.AddSingleton<KafkaWrapper>(x =>
 {
     var kafkaCredentials = LoadKafkaCredentials();
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
-    return new KafkaWrapper(conf.BrokerList,appName,new ProducerOptions
+    return new KafkaWrapper(appName, new KafkaOptions
     {
         PartitionCount = 30,
-        Password = kafkaCredentials.ConfluentPassword,
-        Username = kafkaCredentials.ConfluentUsername });
+        ConfluentPassword = kafkaCredentials.ConfluentPassword,
+        ConfluentUsername = kafkaCredentials.ConfluentUsername,
+        Brokers = conf.BrokerList
+    });
 });
-builder.Services.AddSingleton<KafkaWrapperConsumer>(x=>
+builder.Services.AddSingleton<KafkaWrapperConsumer>(x =>
 {
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
     var kafkaCredentials = LoadKafkaCredentials();
-    var kafkaWrapperConsumer = new KafkaWrapperConsumer(conf.BrokerList,new ConsumerOptions
+    var kafkaWrapperConsumer = new KafkaWrapperConsumer(new KafkaOptions()
     {
-        Password = kafkaCredentials.ConfluentPassword,
-        Username = kafkaCredentials.ConfluentUsername,
-        AppName = "asd"
-    },new EventProcesser(),"asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+        ConfluentPassword = kafkaCredentials.ConfluentPassword,
+        ConfluentUsername = kafkaCredentials.ConfluentUsername,
+        AppName = "asd",
+        Brokers = conf.BrokerList
+    }, new EventProcesser(), "asd").WithDatabase(KafkaMysqlDbContext.ConnectionString);
     return kafkaWrapperConsumer;
 });
 

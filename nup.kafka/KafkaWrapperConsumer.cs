@@ -28,9 +28,9 @@ public class KafkaWrapperConsumer
     private IDaoLayer _persistence;
     private readonly EventProcesser _eventProcesser;
     private ILogger _logger;
-    private ConsumerOptions _consumerOptions;
+    private KafkaOptions _consumerOptions;
 
-    public KafkaWrapperConsumer(List<string> brokerList, ConsumerOptions consumerOptions, EventProcesser eventProcesser,
+    public KafkaWrapperConsumer(KafkaOptions consumerOptions, EventProcesser eventProcesser,
         string consumerIdentifier = "default")
     {
         _consumerOptions = consumerOptions;
@@ -38,7 +38,7 @@ public class KafkaWrapperConsumer
         _logger = Log.ForContext("Executor",this.GetType().Name);
         _consumerIdentifier = consumerIdentifier;
         _appName = consumerOptions.AppName ?? throw new ArgumentNullException(nameof(consumerOptions.AppName));
-        _brokers = string.Join(",", brokerList);
+        _brokers = string.Join(",", consumerOptions.Brokers);
         _eventProcesser = eventProcesser;
     }
 
@@ -92,27 +92,20 @@ public class KafkaWrapperConsumer
     private void RunListener<T>(string brokerList, string topics, CancellationToken cancellationToken,
         Action<T> handler)
     {
-        var config = new ConsumerConfig
-        {
-            BootstrapServers = brokerList,
-            GroupId = _appName,
-            EnableAutoOffsetStore = false,//if true, it will commit offset BEFORE data is returned in consume()
-            EnableAutoCommit = true,
-            StatisticsIntervalMs = 5000,
-            SessionTimeoutMs = 6000,
-            AutoOffsetReset = AutoOffsetReset.Earliest,
-            AutoCommitIntervalMs = 1000,
-            EnablePartitionEof = true,
-            // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
-            // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
-            PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky,
-            TopicBlacklist = "docker-connect.*,_.*",
-            SaslMechanism = SaslMechanism.Plain,
-            SaslPassword = _consumerOptions.Password,
-            SaslUsername = _consumerOptions.Username,
-            SecurityProtocol = SecurityProtocol.SaslSsl,
-
-        };
+        var clientConfig = KafkaUtils.InitConfig(_consumerOptions);
+        var config = new ConsumerConfig(clientConfig);
+        config.BootstrapServers = brokerList;
+        config.GroupId = _appName;
+        config.EnableAutoOffsetStore = false; //if true, it will commit offset BEFORE data is returned in consume()
+        config.EnableAutoCommit = true;
+        config.StatisticsIntervalMs = 5000;
+        config.SessionTimeoutMs = 6000;
+        config.AutoOffsetReset = AutoOffsetReset.Earliest;
+        config.AutoCommitIntervalMs = 1000;
+        config.EnablePartitionEof = true; // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
+        // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
+        config.PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky;
+        config.TopicBlacklist = "docker-connect.*,_.*";
 
         // Note: If a key or value deserializer is not set (as is the case below), the 
         // deserializer corresponding to the appropriate type from Confluent.Kafka.Deserializers

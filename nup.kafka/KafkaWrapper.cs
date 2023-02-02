@@ -14,30 +14,25 @@ public class KafkaWrapper
     private IProducer<string, string>? _producer;
     private string _brokers;
     private string _appName;
-    private readonly ProducerOptions _defaultProducerOptions;
+    private readonly KafkaOptions _defaultKafkaOptions;
 
     private JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
     {
         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
     };
 
-    public KafkaWrapper(List<string> brokerList, string appName, ProducerOptions defaultProducerOptions)
+    public KafkaWrapper(string appName, KafkaOptions defaultKafkaOptions)
     {
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
-        _defaultProducerOptions =
-            defaultProducerOptions ?? throw new ArgumentNullException(nameof(defaultProducerOptions));
-        _brokers = string.Join(",", brokerList);
-        var config = new ProducerConfig
-        {
-            BootstrapServers = _brokers, SaslUsername = defaultProducerOptions.Username,
-            SaslPassword = defaultProducerOptions.Password, SaslMechanism = SaslMechanism.Plain,
-            SecurityProtocol = SecurityProtocol.SaslSsl,
-        };
+        _defaultKafkaOptions =
+            defaultKafkaOptions ?? throw new ArgumentNullException(nameof(defaultKafkaOptions));
+        _brokers = string.Join(",", defaultKafkaOptions.Brokers);
+        var config = KafkaUtils.InitConfig(defaultKafkaOptions);
         _producer = new ProducerBuilder<string, string>(config)
             .Build();
     }
 
-    public async Task Send<T>(T ev, string entityKey = null, ProducerOptions? options = null) where T : class
+    public async Task Send<T>(T ev, string entityKey = null, KafkaOptions? options = null) where T : class
     {
         var topic = typeof(T).FullName;
         var payload = JsonConvert.SerializeObject(ev, settings: _jsonSerializerSettings);
@@ -45,7 +40,7 @@ public class KafkaWrapper
     }
 
     public async Task Send(string payload, string topic, string eventType, OriginatingPlatform platform,
-        string entityKey = null, ProducerOptions? options = null)
+        string entityKey = null, KafkaOptions? options = null)
     {
         await CreateTopic(topic, options);
 
@@ -116,32 +111,43 @@ public class KafkaWrapper
             new Dictionary<string, string>();
     }
 
-    private async Task CreateTopic(string topicName, ProducerOptions? options)
+    public async Task CreateTopic(string topicName, KafkaOptions? options)
     {
-        options ??= _defaultProducerOptions;
+        options ??= _defaultKafkaOptions;
         using (var adminClient =
-               new AdminClientBuilder(new AdminClientConfig { BootstrapServers = _brokers }).Build())
+               new AdminClientBuilder(KafkaUtils.InitConfig(options)).Build())
         {
             try
             {
                 var existingConfig = GetTopicConfig(topicName, adminClient);
                 var partitionsCount = existingConfig.Topics.First().Partitions.Count;
-                if (existingConfig?.Topics?.Count == 1 && partitionsCount != 1 &&
-                    partitionsCount < options.PartitionCount)
+
+                var unknownTopic = existingConfig.Topics.Any(x => x.Error != null);
+                if (unknownTopic)
                 {
-                    await IncreasePartitionCountTo(adminClient, topicName, options.PartitionCount);
+                    {
+                        await adminClient.CreateTopicsAsync(new TopicSpecification[]
+                        {
+                            new TopicSpecification { Name = topicName, NumPartitions = options.PartitionCount }
+                        }, new CreateTopicsOptions { });
+                    }
                 }
-                // else
-                // {
-                //     await adminClient.CreateTopicsAsync(new TopicSpecification[]
-                //     {
-                //         new TopicSpecification { Name = topicName, NumPartitions = options.PartitionCount }
-                //     }, new CreateTopicsOptions { });   
-                // }
+                else
+                {
+                    if (existingConfig?.Topics?.Count == 1 && partitionsCount != 1 &&
+                        partitionsCount < options.PartitionCount)
+                    {
+                        await IncreasePartitionCountTo(adminClient, topicName, options.PartitionCount);
+                    }
+                }
             }
             catch (CreateTopicsException e)
             {
                 Log.Information($"An error occured creating topic {e.Results[0].Topic}: {e.Results[0].Error.Reason}");
+            }
+            catch (Exception e)
+            {
+                Log.Information($"An error occured {e.Message}");
             }
         }
     }

@@ -11,15 +11,16 @@ public class Tests
     [SetUp]
     public void Setup()
     {
-        _client = new KafkaWrapper(TestConsts.brokers, "TestApp", new ProducerOptions
+        _client = new KafkaWrapper( "TestApp", new KafkaOptions
         {
-            PartitionCount = 4
+            PartitionCount = 4,
+            Brokers = TestConsts.brokers
         });
-        var consumerOptions = new ConsumerOptions
+        var consumerOptions = new KafkaOptions()
         {
             AppName = "TestApp"
         };
-        _consumer = new KafkaWrapperConsumer(TestConsts.brokers, consumerOptions, new EventProcesser(),
+        _consumer = new KafkaWrapperConsumer(consumerOptions, new EventProcesser(),
             KafkaMysqlDbContext.ConnectionString);
     }
 

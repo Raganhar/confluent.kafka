@@ -13,9 +13,10 @@ public class CompetingConsumersTests
     [SetUp]
     public void Setup()
     {
-        _client = new KafkaWrapper(TestConsts.brokers, "TestApp", new ProducerOptions
+        _client = new KafkaWrapper("TestApp", new KafkaOptions
         {
-            PartitionCount = 4
+            PartitionCount = 4,
+            Brokers = TestConsts.brokers
         });
     }
 
@@ -31,12 +32,13 @@ public class CompetingConsumersTests
 
         try
         {
-            var consumerOptions = new ConsumerOptions
+            var consumerOptions = new KafkaOptions()
             {
-                AppName = "TestApp"
+                AppName = "TestApp",
+                Brokers = TestConsts.brokers
             };
-            var _consumer1 = new KafkaWrapperConsumer(TestConsts.brokers, consumerOptions, new EventProcesser(),"consumer1").WithDatabase(KafkaMysqlDbContext.ConnectionString);
-            var _consumer2 = new KafkaWrapperConsumer(TestConsts.brokers, consumerOptions, new EventProcesser(),"consumer2").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+            var _consumer1 = new KafkaWrapperConsumer(consumerOptions, new EventProcesser(),"consumer1").WithDatabase(KafkaMysqlDbContext.ConnectionString);
+            var _consumer2 = new KafkaWrapperConsumer(consumerOptions, new EventProcesser(),"consumer2").WithDatabase(KafkaMysqlDbContext.ConnectionString);
 
             var processedEvents = new ConcurrentDictionary<string, int>();
             

@@ -37,7 +37,7 @@ public class ShovelToKafka
                             {
                                 Log.Information("sending msg to kafka");
                                 _kafkaClient.Send(x.Payload, x.Topic, x.EventType, OriginatingPlatform.Sqs, x.EntityKey,
-                                    new ProducerOptions { PartitionCount = 30 }).Wait();
+                                    new KafkaOptions { PartitionCount = 30 }).Wait();
                                 Log.Information("sendt msg to kafka");
                             }
                             else

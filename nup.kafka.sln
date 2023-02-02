@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication1", "WebAppli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KafkaAndSqsShoveller", "KafkaAndSqsShoveller\KafkaAndSqsShoveller.csproj", "{F95ED565-A8A5-4AE9-8F4D-C32E758B9177}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KafkaManagerConsole", "KafkaManagerConsole\KafkaManagerConsole.csproj", "{20074E4C-B2DC-4758-BE51-778FDEA65E8D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{F95ED565-A8A5-4AE9-8F4D-C32E758B9177}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F95ED565-A8A5-4AE9-8F4D-C32E758B9177}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F95ED565-A8A5-4AE9-8F4D-C32E758B9177}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20074E4C-B2DC-4758-BE51-778FDEA65E8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20074E4C-B2DC-4758-BE51-778FDEA65E8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20074E4C-B2DC-4758-BE51-778FDEA65E8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20074E4C-B2DC-4758-BE51-778FDEA65E8D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
