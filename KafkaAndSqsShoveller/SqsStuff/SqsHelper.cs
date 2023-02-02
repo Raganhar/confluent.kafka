@@ -1,16 +1,13 @@
 ﻿using Amazon.SQS;
 using Amazon.SQS.Model;
-using KafkaAndSqsShoveller;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using WebApplication1.Config;
-using WebApplication1.Models;
 
-namespace WebApplication1.SqsStuff;
+namespace KafkaAndSqsShoveller.SqsStuff;
 
 public interface IAWSSQSHelper
 {
-    Task<bool> SendMessageAsync(UserDetail userDetail, string eventType);
+    Task<bool> SendMessageAsync(object userDetail, string eventType);
     Task<bool> SendMessageAsync(string @event, string eventType);
     Task<List<Message>> ReceiveMessageAsync();
     Task<bool> DeleteMessageAsync(string messageReceiptHandle);
@@ -54,7 +51,7 @@ public class AWSSQSHelper : IAWSSQSHelper
             throw ex;
         }
     }
-    public async Task<bool> SendMessageAsync(UserDetail @event, string eventType)
+    public async Task<bool> SendMessageAsync(object @event, string eventType)
     {
         return await SendMessageAsync(JsonConvert.SerializeObject(@event, settings: new JsonSerializerSettings()
         {

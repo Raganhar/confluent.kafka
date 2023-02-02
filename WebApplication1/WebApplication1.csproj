@@ -20,4 +20,8 @@
       <ProjectReference Include="..\nup.kafka\nup.kafka.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Config" />
+    </ItemGroup>
+
 </Project>

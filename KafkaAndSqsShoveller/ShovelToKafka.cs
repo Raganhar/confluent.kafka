@@ -1,4 +1,5 @@
-﻿using nup.kafka;
+﻿using KafkaAndSqsShoveller.SqsStuff;
+using nup.kafka;
 using nup.kafka.Models;
 using Serilog;
 using Serilog.Context;
@@ -14,16 +15,16 @@ public class ShovelToKafka
         _kafkaClient = kafkaClient;
     }
     
-    public void PushToKafka(Func<> func)
+    public void PushToKafka(CancellationToken _cts, Func<IAWSSQSService> func)
     {
         using (LogContext.PushProperty("worker", "sqsWorker"))
         {
             ThreadPool.QueueUserWorkItem(state =>
             {
-                while (!_cts.Token.IsCancellationRequested)
+                while (!_cts.IsCancellationRequested)
                 {
                     Log.Information("Retrieving SQS messages");
-                    var sqs = _scope.CreateScope().ServiceProvider.GetRequiredService<IAWSSQSService>();
+                    var sqs =func();
                     var allMessagesAsync = sqs.GetAllMessagesAsync();
                     Task.WaitAll(allMessagesAsync);
                     var allMessages = allMessagesAsync.Result;

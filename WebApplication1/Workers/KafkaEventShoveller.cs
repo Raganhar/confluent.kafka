@@ -9,9 +9,7 @@ using nup.kafka;
 using nup.kafka.Models;
 using Serilog;
 using Serilog.Context;
-using WebApplication1.Config;
 using WebApplication1.Models;
-using WebApplication1.SqsStuff;
 using MessageAttributeValue = Amazon.SQS.Model.MessageAttributeValue;
 
 namespace WebApplication1.Workers;

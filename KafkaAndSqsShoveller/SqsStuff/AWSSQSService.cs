@@ -1,15 +1,12 @@
 ﻿using Amazon.SQS.Model;
-using KafkaAndSqsShoveller;
-using Newtonsoft.Json;
 using nup.kafka;
 using nup.kafka.Models;
-using WebApplication1.Models;
 
-namespace WebApplication1.SqsStuff;
+namespace KafkaAndSqsShoveller.SqsStuff;
 
 public interface IAWSSQSService
 {
-    Task<bool> PostMessageAsync(User user);
+    // Task<bool> PostMessageAsync(User user);
     // Task<bool> PostMessageAsync(string @event, string eventType);
     Task<List<AllMessage>> GetAllMessagesAsync();
     Task<bool> DeleteMessageAsync(DeleteMessage deleteMessage);
@@ -23,37 +20,6 @@ public class AWSSQSService : IAWSSQSService
     {
         this._AWSSQSHelper = AWSSQSHelper;
     }
-
-    public async Task<bool> PostMessageAsync(User user)
-    {
-        try
-        {
-            UserDetail userDetail = new UserDetail();
-            userDetail.Id = new Random().Next(999999999);
-            userDetail.FirstName = user.FirstName;
-            userDetail.LastName = user.LastName;
-            userDetail.UserName = user.UserName;
-            userDetail.EmailId = user.EmailId;
-            userDetail.CreatedOn = DateTime.UtcNow;
-            userDetail.UpdatedOn = DateTime.UtcNow;
-            return await _AWSSQSHelper.SendMessageAsync(userDetail, userDetail.GetType().FullName);
-        }
-        catch (Exception ex)
-        {
-            throw ex;
-        }
-    }
-    // public async Task<bool> PostMessageAsync(string @event, string eventType)
-    // {
-    //     try
-    //     {
-    //         return await _AWSSQSHelper.SendMessageAsync(@event,eventType);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         throw ex;
-    //     }
-    // }
 
     public async Task<List<AllMessage>> GetAllMessagesAsync()
     {

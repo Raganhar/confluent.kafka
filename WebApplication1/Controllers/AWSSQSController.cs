@@ -1,13 +1,12 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
 using KafkaAndSqsShoveller;
+using KafkaAndSqsShoveller.SqsStuff;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using nup.kafka;
-using WebApplication1.Config;
 using WebApplication1.Models;
-using WebApplication1.SqsStuff;
 
 namespace WebApplication1.Controllers;
 
@@ -16,10 +15,10 @@ namespace WebApplication1.Controllers;
 [ApiController]
 public class AWSSQSController : ControllerBase
 {
-    private readonly IAWSSQSService _AWSSQSService;
+    private readonly SqsStuff _AWSSQSService;
     private readonly ServiceConfiguration _configs;
 
-    public AWSSQSController(IAWSSQSService AWSSQSService, IOptions<ServiceConfiguration> configs)
+    public AWSSQSController(SqsStuff AWSSQSService, IOptions<ServiceConfiguration> configs)
     {
         this._AWSSQSService = AWSSQSService;
         _configs = configs.Value;
@@ -72,19 +71,19 @@ public class AWSSQSController : ControllerBase
         // return StatusCode((int)publishAsync.HttpStatusCode);
     }
 
-    [Route("getAllMessages")]
-    [HttpGet]
-    public async Task<IActionResult> GetAllMessagesAsync()
-    {
-        var result = await _AWSSQSService.GetAllMessagesAsync();
-        return Ok(result);
-    }
-
-    [Route("deleteMessage")]
-    [HttpDelete]
-    public async Task<IActionResult> DeleteMessageAsync(DeleteMessage deleteMessage)
-    {
-        var result = await _AWSSQSService.DeleteMessageAsync(deleteMessage);
-        return Ok(new { isSucess = result });
-    }
+    // [Route("getAllMessages")]
+    // [HttpGet]
+    // public async Task<IActionResult> GetAllMessagesAsync()
+    // {
+    //     var result = await _AWSSQSService.GetAllMessagesAsync();
+    //     return Ok(result);
+    // }
+    //
+    // [Route("deleteMessage")]
+    // [HttpDelete]
+    // public async Task<IActionResult> DeleteMessageAsync(DeleteMessage deleteMessage)
+    // {
+    //     var result = await _AWSSQSService.DeleteMessageAsync(deleteMessage);
+    //     return Ok(new { isSucess = result });
+    // }
 }

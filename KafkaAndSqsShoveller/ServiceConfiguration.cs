@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Config;
+﻿namespace KafkaAndSqsShoveller;
 
 public class ServiceConfiguration
 {

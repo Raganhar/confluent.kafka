@@ -1,10 +1,10 @@
 ﻿using KafkaAndSqsShoveller;
+using KafkaAndSqsShoveller.SqsStuff;
 using nup.kafka;
 using nup.kafka.Models;
 using Serilog;
 using Serilog.Context;
 using WebApplication1.Models;
-using WebApplication1.SqsStuff;
 
 namespace WebApplication1.Workers;
 
@@ -24,7 +24,7 @@ public class SqsEventWorker : IHostedService, IDisposable
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _toKafka.PushToKafka(()=>_scope.CreateScope().ServiceProvider.GetRequiredService<IAWSSQSService>());
+        _toKafka.PushToKafka(cancellationToken,()=>_scope.CreateScope().ServiceProvider.GetRequiredService<IAWSSQSService>());
         return Task.CompletedTask;
     }
 

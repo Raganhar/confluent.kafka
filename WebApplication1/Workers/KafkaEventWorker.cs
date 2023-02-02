@@ -2,7 +2,6 @@
 using Serilog;
 using Serilog.Context;
 using WebApplication1.Models;
-using WebApplication1.SqsStuff;
 
 namespace WebApplication1.Workers;
 
