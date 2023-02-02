@@ -235,3 +235,7 @@ _Pvt_Extensions
 nuget.config
 
 WebApplication1/Secrets.json
+
+KafkaManagerConsole/Secrets.json
+
+WebApplication1/Secrets - Copy.json

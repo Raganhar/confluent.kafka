@@ -32,17 +32,17 @@ public class KafkaWrapper
             .Build();
     }
 
-    public async Task Send<T>(T ev, string entityKey = null, KafkaOptions? options = null) where T : class
+    public async Task Send<T>(T ev, string entityKey = null) where T : class
     {
         var topic = typeof(T).FullName;
         var payload = JsonConvert.SerializeObject(ev, settings: _jsonSerializerSettings);
-        await Send(payload, topic, topic, OriginatingPlatform.Kafka, entityKey, options);
+        await Send(payload, topic, topic, OriginatingPlatform.Kafka, entityKey);
     }
 
     public async Task Send(string payload, string topic, string eventType, OriginatingPlatform platform,
         string entityKey = null, KafkaOptions? options = null)
     {
-        await CreateTopic(topic, options);
+        await CreateTopic(topic, options??_defaultKafkaOptions);
 
         try
         {
@@ -122,7 +122,7 @@ public class KafkaWrapper
                 var existingConfig = GetTopicConfig(topicName, adminClient);
                 var partitionsCount = existingConfig.Topics.First().Partitions.Count;
 
-                var unknownTopic = existingConfig.Topics.Any(x => x.Error != null);
+                var unknownTopic = existingConfig.Topics.Any(x => x.Error.IsError);
                 if (unknownTopic)
                 {
                     {

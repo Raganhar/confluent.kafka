@@ -36,8 +36,7 @@ public class ShovelToKafka
                             if (x.OriginatedAt == OriginatingPlatform.Sqs)
                             {
                                 Log.Information("sending msg to kafka");
-                                _kafkaClient.Send(x.Payload, x.Topic, x.EventType, OriginatingPlatform.Sqs, x.EntityKey,
-                                    new KafkaOptions { PartitionCount = 30 }).Wait();
+                                _kafkaClient.Send(x.Payload, x.Topic, x.EventType, OriginatingPlatform.Sqs, x.EntityKey).Wait();
                                 Log.Information("sendt msg to kafka");
                             }
                             else

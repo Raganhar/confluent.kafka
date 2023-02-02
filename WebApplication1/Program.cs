@@ -46,7 +46,7 @@ builder.Services.AddSingleton<KafkaWrapper>(x =>
     var conf = x.GetRequiredService<IOptions<ServiceConfiguration>>().Value;
     return new KafkaWrapper(appName, new KafkaOptions
     {
-        PartitionCount = 30,
+        // PartitionCount = 30,
         ConfluentPassword = kafkaCredentials.ConfluentPassword,
         ConfluentUsername = kafkaCredentials.ConfluentUsername,
         Brokers = conf.BrokerList
