@@ -28,10 +28,12 @@ public class KafkaWrapperConsumer
     private IDaoLayer _persistence;
     private readonly EventProcesser _eventProcesser;
     private ILogger _logger;
+    private ConsumerOptions _consumerOptions;
 
     public KafkaWrapperConsumer(List<string> brokerList, ConsumerOptions consumerOptions, EventProcesser eventProcesser,
         string consumerIdentifier = "default")
     {
+        _consumerOptions = consumerOptions;
         if (consumerOptions == null) throw new ArgumentNullException(nameof(consumerOptions));
         _logger = Log.ForContext("Executor",this.GetType().Name);
         _consumerIdentifier = consumerIdentifier;
@@ -105,7 +107,11 @@ public class KafkaWrapperConsumer
             // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
             PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky,
             TopicBlacklist = "docker-connect.*,_.*",
-            
+            SaslMechanism = SaslMechanism.Plain,
+            SaslPassword = _consumerOptions.Password,
+            SaslUsername = _consumerOptions.Username,
+            SecurityProtocol = SecurityProtocol.SaslSsl,
+
         };
 
         // Note: If a key or value deserializer is not set (as is the case below), the 

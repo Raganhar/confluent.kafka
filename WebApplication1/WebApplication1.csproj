@@ -24,4 +24,10 @@
       <Folder Include="Config" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Update="Secrets.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>
