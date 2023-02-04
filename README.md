@@ -10,11 +10,16 @@
 - [X] Idempotent consumption
 - [ ] Deadletter queue with message attribute describing failure reason
 - [x] Fail successive events on same aggregate if earlier events on same entity ID has previously failed (so we dont process update events, if the create event failed)
-- [ ] Provide way to "requeue" events from deadletter queue
 - [ ] Kafka Transactions
 - [x] Kafka connect POC for shoveling events from Kafka to SNS/SQS & from SNS/SQS to Kafka
-- [ ] Figure out how to mark messages as "will never be processed" so that they wont block further "aggregrate" processing
 - [ ] Figure out if a unique event ID has to be added the header, indicating the uniqueness of the payload. This can be used to later identify the same event payload if it is requeued on another partition after rebalancing of partitions (adding more partitions)
 - [ ] Implement claims check
+
+## support processes
+- [ ] Provide way to "requeue" events from deadletter queue
+- [ ] Provide a way to reset offsets, allowing to reprocess previous records
+- [ ] Provide a way to set the offset, allowing to skip poisoned records
+- [ ] Figure out how to mark messages as "will never be processed" so that they wont block further "aggregrate" processing
+
 
 dotnet ef migrations add InitialCreate
