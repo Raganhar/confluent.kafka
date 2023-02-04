@@ -21,5 +21,9 @@
 - [ ] Provide a way to set the offset, allowing to skip poisoned records
 - [ ] Figure out how to mark messages as "will never be processed" so that they wont block further "aggregrate" processing
 
+## random thoughts
+- [ ] look into allowig a level of parallelism when consuming events, fx scheduling multiple consumers on the same host for the sam topic. Enabling 2 hosts to be assigned 10 partitions - 5 each. To consume 5 partitions in parallel per host, instad of only processing 1 partition at a time per host
+- [ ] Look into doing in app parallelizatiom of individual paritition, by doing an extra layer of caching the partition key, allowing 2 partitions to be processed in parallel by fx 10 workers in parallel. This would obviously require some sort of batch processing consuming batches at a time and batch committing offset
+
 
 dotnet ef migrations add InitialCreate
