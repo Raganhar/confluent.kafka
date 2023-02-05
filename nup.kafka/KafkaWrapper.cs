@@ -9,10 +9,9 @@ using Serilog;
 
 namespace nup.kafka;
 
-public class KafkaWrapper
+public class KafkaWrapper: IDisposable
 {
     private IProducer<string, string>? _producer;
-    private string _brokers;
     private string _appName;
     private readonly KafkaOptions _defaultKafkaOptions;
 
@@ -26,7 +25,6 @@ public class KafkaWrapper
         _appName = appName ?? throw new ArgumentNullException(nameof(appName));
         _defaultKafkaOptions =
             defaultKafkaOptions ?? throw new ArgumentNullException(nameof(defaultKafkaOptions));
-        _brokers = string.Join(",", defaultKafkaOptions.Brokers);
         var config = KafkaUtils.InitConfig(defaultKafkaOptions);
         _producer = new ProducerBuilder<string, string>(config)
             .Build();
@@ -170,5 +168,11 @@ public class KafkaWrapper
                 IncreaseTo = count,
             }
         });
+    }
+
+    public void Dispose()
+    {
+        _producer.Flush(TimeSpan.FromSeconds(1));
+        _producer?.Dispose();
     }
 }
