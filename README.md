@@ -14,6 +14,7 @@
 - [x] Kafka connect POC for shoveling events from Kafka to SNS/SQS & from SNS/SQS to Kafka
 - [ ] Figure out if a unique event ID has to be added the header, indicating the uniqueness of the payload. This can be used to later identify the same event payload if it is requeued on another partition after rebalancing of partitions (adding more partitions)
 - [ ] Implement claims check
+- [ ] Handle what happens if processing of a record takes longer than the max.poll.interval.ms, trigger cancellation token and mark record as fail ?
 
 ## support processes
 - [ ] Provide way to "requeue" events from deadletter queue
