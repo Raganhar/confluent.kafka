@@ -35,7 +35,7 @@ public class KafkaWrapperConsumer
     {
         _consumerOptions = consumerOptions;
         if (consumerOptions == null) throw new ArgumentNullException(nameof(consumerOptions));
-        _logger = Log.ForContext("Executor",this.GetType().Name);
+        _logger = Log.ForContext("Executor", this.GetType().Name);
         _consumerIdentifier = consumerIdentifier;
         _appName = consumerOptions.AppName ?? throw new ArgumentNullException(nameof(consumerOptions.AppName));
         _brokers = string.Join(",", consumerOptions.Brokers);
@@ -47,6 +47,7 @@ public class KafkaWrapperConsumer
         _persistence = dao;
         return this;
     }
+
     public KafkaWrapperConsumer WithDatabase(string connectionString)
     {
         DbContextOptionsBuilder<KafkaMysqlDbContext> optionsBuilder =
@@ -57,19 +58,24 @@ public class KafkaWrapperConsumer
         return this;
     }
 
-    public void Consume(CancellationToken cancellationToken, Action<ConsumeResult<Ignore,string>> handler, string topic)
+    public Task Consume(CancellationToken cancellationToken, Action<ConsumeResult<Ignore, string>> handler,
+        string topic)
     {
         try
         {
-            ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "Bob");
+            var task = Task.Factory.StartNew(() => RunListener(_brokers, topic, cancellationToken, handler),
+                cancellationToken, TaskCreationOptions.LongRunning,TaskScheduler.Default);
+            task.ConfigureAwait(false);
+            return task;
         }
         catch (Exception e)
         {
-            _logger.Error(e,"failed to register listener");
+            _logger.Error(e, "failed to register listener");
+            return Task.CompletedTask;
         }
         // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
-
     }
+
     public void Consume<T>(CancellationToken cancellationToken, Action<T> handler)
     {
         try
@@ -80,12 +86,13 @@ public class KafkaWrapperConsumer
             //     throw new ArgumentException($"Handler for topic {topic} is already registered");
             // }
 
-            ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler), "ThreadPool");
+            ThreadPool.QueueUserWorkItem(state => RunListener(_brokers, topic, cancellationToken, handler),
+                "ThreadPool");
             // _handlers.AddOrUpdate(topic, null as string, (s, s1) => null);
         }
         catch (Exception e)
         {
-            _logger.Error(e,"failed to register listener");
+            _logger.Error(e, "failed to register listener");
         }
     }
 
@@ -102,7 +109,8 @@ public class KafkaWrapperConsumer
         config.SessionTimeoutMs = 6000;
         config.AutoOffsetReset = AutoOffsetReset.Earliest;
         config.AutoCommitIntervalMs = 1000;
-        config.EnablePartitionEof = true; // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
+        config.EnablePartitionEof =
+            true; // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
         // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
         config.PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky;
         config.TopicBlacklist = "docker-connect.*,_.*";
@@ -154,11 +162,11 @@ public class KafkaWrapperConsumer
             try
             {
                 consumer.Subscribe(topics);
-                _logger.Information("Registered kafka consumer to {topic}",topics);
+                _logger.Information("Registered kafka consumer to {topic}", topics);
             }
             catch (Exception e)
             {
-                _logger.Error(e,"Failed to subscribe to topic.");
+                _logger.Error(e, "Failed to subscribe to topic.");
                 throw;
             }
 
@@ -176,7 +184,7 @@ public class KafkaWrapperConsumer
                             continue;
                         }
 
-                        _eventProcesser.ProcessMessage(handler, consumeResult, ()=>
+                        _eventProcesser.ProcessMessage(handler, consumeResult, () =>
                         {
                             _logger.Information("Saving offset");
                             consumer.StoreOffset(consumeResult);
