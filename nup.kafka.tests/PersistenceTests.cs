@@ -84,7 +84,7 @@ public class PersistenceTests
         var message =
             _daoLayer.Get(
                 new TopicPartitionOffset(kafkaMessage.Topic, new Partition(kafkaMessage.Partition),
-                    kafkaMessage.OffSet), kafkaMessage.PartitionKey);
+                    kafkaMessage.OffSet));
         message.Should().NotBeNull();
     }
 

@@ -99,65 +99,14 @@ public class KafkaWrapperConsumer
     private void RunListener<T>(string brokerList, string topics, CancellationToken cancellationToken,
         Action<T> handler)
     {
-        var clientConfig = KafkaUtils.InitConfig(_consumerOptions);
-        var config = new ConsumerConfig(clientConfig);
-        config.BootstrapServers = brokerList;
-        config.GroupId = _appName;
-        config.EnableAutoOffsetStore = false; //if true, it will commit offset BEFORE data is returned in consume()
-        config.EnableAutoCommit = true;
-        config.StatisticsIntervalMs = 5000;
-        config.SessionTimeoutMs = 6000;
-        config.AutoOffsetReset = AutoOffsetReset.Earliest;
-        config.AutoCommitIntervalMs = 1000;
-        config.EnablePartitionEof =
-            true; // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
-        // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
-        config.PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky;
-        config.TopicBlacklist = "docker-connect.*,_.*";
+        var config = ConsumerConfig<T>(brokerList);
 
         // Note: If a key or value deserializer is not set (as is the case below), the 
         // deserializer corresponding to the appropriate type from Confluent.Kafka.Deserializers
         // will be used automatically (where available). The default deserializer for string
         // is UTF8. The default deserializer for Ignore returns null for all input data
         // (including non-null data).
-        using (var consumer = new ConsumerBuilder<Ignore, string>(config)
-                   .SetErrorHandler((_, e) => _logger.Information($"Error: {e.Reason}"))
-                   .SetStatisticsHandler((_, json) => _logger.Information($"Statistics: {json}"))
-                   .SetPartitionsAssignedHandler((c, partitions) =>
-                   {
-                       // Since a cooperative assignor (CooperativeSticky) has been configured, the
-                       // partition assignment is incremental (adds partitions to any existing assignment).
-                       _logger.Information(
-                           "Partitions incrementally assigned: [" +
-                           string.Join(',', partitions.Select(p => p.Partition.Value)) +
-                           "], all: [" +
-                           string.Join(',', c.Assignment.Concat(partitions).Select(p => p.Partition.Value)) +
-                           "]");
-
-                       // Possibly manually specify start offsets by returning a list of topic/partition/offsets
-                       // to assign to, e.g.:
-                       // return partitions.Select(tp => new TopicPartitionOffset(tp, externalOffsets[tp]));
-                   })
-                   .SetPartitionsRevokedHandler((c, partitions) =>
-                   {
-                       // Since a cooperative assignor (CooperativeSticky) has been configured, the revoked
-                       // assignment is incremental (may remove only some partitions of the current assignment).
-                       var remaining = c.Assignment.Where(atp =>
-                           partitions.Where(rtp => rtp.TopicPartition == atp).Count() == 0);
-                       _logger.Information(
-                           "Partitions incrementally revoked: [" +
-                           string.Join(',', partitions.Select(p => p.Partition.Value)) +
-                           "], remaining: [" +
-                           string.Join(',', remaining.Select(p => p.Partition.Value)) +
-                           "]");
-                   })
-                   .SetPartitionsLostHandler((c, partitions) =>
-                   {
-                       // The lost partitions handler is called when the consumer detects that it has lost ownership
-                       // of its assignment (fallen out of the group).
-                       _logger.Information($"Partitions were lost: [{string.Join(", ", partitions)}]");
-                   })
-                   .Build())
+        using (var consumer = CreateConsumer<T>(config))
         {
             try
             {
@@ -172,7 +121,7 @@ public class KafkaWrapperConsumer
 
             try
             {
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
@@ -203,5 +152,67 @@ public class KafkaWrapperConsumer
                 consumer.Close();
             }
         }
+    }
+
+    private IConsumer<Ignore, string> CreateConsumer<T>(ConsumerConfig config)
+    {
+        return new ConsumerBuilder<Ignore, string>(config)
+            .SetErrorHandler((_, e) => _logger.Information($"Error: {e.Reason}"))
+            .SetStatisticsHandler((_, json) => _logger.Information($"Statistics: {json}"))
+            .SetPartitionsAssignedHandler((c, partitions) =>
+            {
+                // Since a cooperative assignor (CooperativeSticky) has been configured, the
+                // partition assignment is incremental (adds partitions to any existing assignment).
+                _logger.Information(
+                    "Partitions incrementally assigned: [" +
+                    string.Join(',', partitions.Select(p => p.Partition.Value)) +
+                    "], all: [" +
+                    string.Join(',', c.Assignment.Concat(partitions).Select(p => p.Partition.Value)) +
+                    "]");
+
+                // Possibly manually specify start offsets by returning a list of topic/partition/offsets
+                // to assign to, e.g.:
+                // return partitions.Select(tp => new TopicPartitionOffset(tp, externalOffsets[tp]));
+            })
+            .SetPartitionsRevokedHandler((c, partitions) =>
+            {
+                // Since a cooperative assignor (CooperativeSticky) has been configured, the revoked
+                // assignment is incremental (may remove only some partitions of the current assignment).
+                var remaining = c.Assignment.Where(atp =>
+                    partitions.Where(rtp => rtp.TopicPartition == atp).Count() == 0);
+                _logger.Information(
+                    "Partitions incrementally revoked: [" +
+                    string.Join(',', partitions.Select(p => p.Partition.Value)) +
+                    "], remaining: [" +
+                    string.Join(',', remaining.Select(p => p.Partition.Value)) +
+                    "]");
+            })
+            .SetPartitionsLostHandler((c, partitions) =>
+            {
+                // The lost partitions handler is called when the consumer detects that it has lost ownership
+                // of its assignment (fallen out of the group).
+                _logger.Information($"Partitions were lost: [{string.Join(", ", partitions)}]");
+            })
+            .Build();
+    }
+
+    private ConsumerConfig ConsumerConfig<T>(string brokerList)
+    {
+        var clientConfig = KafkaUtils.InitConfig(_consumerOptions);
+        var config = new ConsumerConfig(clientConfig);
+        config.BootstrapServers = brokerList;
+        config.GroupId = _appName;
+        config.EnableAutoOffsetStore = false; //if true, it will commit offset BEFORE data is returned in consume()
+        config.EnableAutoCommit = true;
+        config.StatisticsIntervalMs = 5000;
+        config.SessionTimeoutMs = 6000;
+        config.AutoOffsetReset = AutoOffsetReset.Earliest;
+        config.AutoCommitIntervalMs = 1000;
+        config.EnablePartitionEof =
+            true; // A good introduction to the CooperativeSticky assignor and incremental rebalancing:
+        // https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
+        config.PartitionAssignmentStrategy = PartitionAssignmentStrategy.CooperativeSticky;
+        config.TopicBlacklist = "docker-connect.*,_.*";
+        return config;
     }
 }

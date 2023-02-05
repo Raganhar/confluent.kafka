@@ -16,6 +16,7 @@ public class KafkaMessage
     [StringLength(2000)]
     public string? ReasonText { get; set; }
     public string Topic { get; set; }
+    public string ConsumerGroupId { get; set; }
     public DateTime RecievedCreatedAtUtc { get; set; }
     public DateTime? FinishedProcessingAtUtc { get; set; }
 }

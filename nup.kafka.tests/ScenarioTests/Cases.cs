@@ -16,11 +16,11 @@ public class DontProcessPreviousSuccessMessageTests
         {
             ProcessedSuccefully = true
         };
-        mock.Get(Arg.Any<TopicPartitionOffset>(), Arg.Any<string>()).ReturnsForAnyArgs(successfullMessage);
+        mock.Get(Arg.Any<TopicPartitionOffset>()).ReturnsForAnyArgs(successfullMessage);
         var message = EmptySampleMessage();
         eventProcesser.ProcessMessage((string e)=>{Assert.Fail();},message,() => {},mock,"");
 
-        mock.ReceivedWithAnyArgs().Get(null,null);
+        mock.ReceivedWithAnyArgs().Get(null);
         mock.DidNotReceiveWithAnyArgs().AddEvent(null);
     }
     
@@ -33,12 +33,12 @@ public class DontProcessPreviousSuccessMessageTests
         {
             ProcessedSuccefully = false
         };
-        mock.Get(Arg.Any<TopicPartitionOffset>(), Arg.Any<string>()).ReturnsForAnyArgs(successfullMessage);
+        mock.Get(Arg.Any<TopicPartitionOffset>()).ReturnsForAnyArgs(successfullMessage);
         var message = EmptySampleMessage();
         var hasBeenCalled = false;
         eventProcesser.ProcessMessage((string e) => { hasBeenCalled = true;},message,() => {},mock,"");
         hasBeenCalled.Should().BeTrue();
-        mock.ReceivedWithAnyArgs().Get(null,null);
+        mock.ReceivedWithAnyArgs().Get(null);
         mock.ReceivedWithAnyArgs().AddEvent(null);
     }
     
@@ -47,7 +47,7 @@ public class DontProcessPreviousSuccessMessageTests
     {
         var eventProcesser = new EventProcesser();
         var mock = NSubstitute.Substitute.For<IDaoLayer>();
-        mock.Get(Arg.Any<TopicPartitionOffset>(), Arg.Any<string>()).ReturnsForAnyArgs(null as KafkaMessage);
+        mock.Get(Arg.Any<TopicPartitionOffset>()).ReturnsForAnyArgs(null as KafkaMessage);
         mock.DidPreviousRelatedEntityFail(Arg.Any<TopicPartitionOffset>(), Arg.Any<string>()).ReturnsForAnyArgs(true);
         var message = EmptySampleMessage();
         message.Message.Headers = KafkaWrapper.AddHeaders(new Dictionary<string, string>(){{KafkaConsts.PartitionKey,"asd"}});
@@ -56,7 +56,7 @@ public class DontProcessPreviousSuccessMessageTests
         eventProcesser.ProcessMessage((string e) => { hasBeenCalled = true;},message,() => {},mock,"");
         
         hasBeenCalled.Should().BeFalse();
-        mock.ReceivedWithAnyArgs().Get(null,null);
+        mock.ReceivedWithAnyArgs().Get(null);
         mock.ReceivedWithAnyArgs().DidPreviousRelatedEntityFail(null,null);
         mock.Received().AddEvent(Arg.Is<KafkaMessage>(u => u.ProcessedSuccefully == false));
     }

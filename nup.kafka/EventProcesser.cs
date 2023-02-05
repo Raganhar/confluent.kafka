@@ -19,7 +19,7 @@ public class EventProcesser
                 ? headers[KafkaConsts.PartitionKey]
                 : null;
             var previouslyProcessedMessage =
-                daoLayer.Get(consumeResult.TopicPartitionOffset, partitionKey);
+                daoLayer.Get(consumeResult.TopicPartitionOffset);
             if (previouslyProcessedMessage?.ProcessedSuccefully == true)
             {
                 Log.Information(
