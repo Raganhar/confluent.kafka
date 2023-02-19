@@ -15,6 +15,7 @@
 - [ ] Figure out if a unique event ID has to be added the header, indicating the uniqueness of the payload. This can be used to later identify the same event payload if it is requeued on another partition after rebalancing of partitions (adding more partitions)
 - [ ] Implement claims check
 - [ ] Handle what happens if processing of a record takes longer than the max.poll.interval.ms, trigger cancellation token and mark record as fail ?
+- [ ] Need to enforce "building" a consumer followed by "starting it", so that you wont start processing records on a topic for a type you haven't configured how to consume yet. - fx an aggregate
 
 ## support processes
 - [ ] Provide way to "requeue" events from deadletter queue
